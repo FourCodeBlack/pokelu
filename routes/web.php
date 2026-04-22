@@ -7,10 +7,6 @@ Route::get('/', function () {
     return view('index');
 });
 
-// Route::get('/explore', function () {
-//     return view('jelajah');
-// })->name('jelajah');
-
 Route::get('/chat', function () {
     return view('chat');
 })->name('chat');
@@ -21,5 +17,11 @@ Route::get('/profile', function () {
 
 Route::get('/api/pokeTcg/data', [pokeApiController::class, 'getData']);
 
+//EXPLORE HANDLERRRR
 Route::get('/explore', [PokeApiController::class, 'getData'])->name('jelajah');
-Route::get('/reset', [PokeApiController::class, 'reset']);
+Route::get('/reset/iya/konfirmasi', [pokeApiController::class, 'reset']);
+
+
+
+//ADMIN ONLY
+// Route::get('/data', [PokeApiController::class, 'sendData']);

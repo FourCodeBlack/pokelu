@@ -11,7 +11,8 @@ export default defineConfig({
                 'resources/css/home.css',
                 'resources/css/profile.css',
                 'resources/views/layout/navbar_jelajah.css',
-                'resources/css/explore.css'
+                'resources/css/explore.css',
+                'resources/js/holo.js'
             ],
             refresh: true,
         }),
