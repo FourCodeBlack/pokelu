@@ -1,0 +1,86 @@
+body {
+    background-color: #1e1030;
+    color: #fff;
+    min-height: 100vh;
+}
+
+.header {
+  position: relative;
+  background: linear-gradient(160deg, #3a2460 0%, #251545 55%, #1a0e38 100%);
+  padding: 36px 40px 60px;
+  overflow: hidden;
+  border-radius: 0 0 40px 40px;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 30px;
+  background: var(--bg-body);
+  border-radius: 40px 40px 0 0;
+}
+ 
+/* subtle noise texture */
+.header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  opacity: 0.5;
+}
+ 
+.header-inner {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  max-width: 860px;
+  margin: 0 auto;
+  z-index: 1;
+}
+ 
+.user-info { flex: 1; }
+ 
+.user-name {
+  font-family: 'Freckle Face', cursive;
+  font-size: clamp(2rem, 5vw, 3rem);
+  letter-spacing: 2px;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(180,120,255,0.3);
+  line-height: 1.1;
+  margin-bottom: 6px;
+  animation: fadeDown 0.6s ease both;
+}
+ 
+.user-email {
+  font-family: 'Freckle Face', cursive;
+  font-size: clamp(0.85rem, 2vw, 1.1rem);
+  color: var(--accent);
+  letter-spacing: 1px;
+  animation: fadeDown 0.7s 0.1s ease both;
+}
+ 
+.avatar-wrap {
+  flex-shrink: 0;
+  animation: fadeLeft 0.6s 0.15s ease both;
+}
+ 
+.avatar {
+  width: clamp(80px, 14vw, 130px);
+  height: clamp(80px, 14vw, 130px);
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d8d0e8 0%, #b8b0cc 100%);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 0 0 3px rgba(200,191,231,0.25);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+ 
+.avatar svg { width: 55%; height: 55%; opacity: 0.5; }
+ 

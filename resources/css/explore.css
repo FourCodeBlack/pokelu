@@ -1,0 +1,211 @@
+/* ============================================
+   explore.css — TCG Grid Layout
+   ============================================ */
+
+
+:root {
+    --card-w: 160px;
+    --card-h: 224px;
+    --gap: 18px;
+    --radius: 12px;
+    --text: #f0eaf8;
+    --muted: #9b8fc2;
+    --surface: #2a1d4a;
+    --accent: #9b6ee0;
+    --bg: #1e1433;
+}
+
+body {
+    background-color: #1e1030;
+    color:#fff;
+}
+/* ── CONTENT WRAPPER ── */
+.content {
+    padding: 36px 32px 60px;
+    min-height: 100vh;
+}
+
+/* ── SECTION TITLE ── */
+.section-title {
+    font-family: 'Freckle Face', cursive;
+    font-size: 2rem;
+    letter-spacing: 2px;
+    color: #fff;
+    margin-bottom: 28px;
+    text-shadow: 0 2px 10px rgba(160, 100, 255, 0.4);
+}
+
+/* ── GRID: 5 kolom ── */
+.items-grid {
+    display: grid;
+    grid-template-columns: repeat(5, var(--card-w));
+    gap: var(--gap);
+    min-height: calc(var(--card-h) * 5 + var(--gap) * 4 + 5 * 28px);
+}
+
+/* ── CARD ── */
+.item-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    animation: cardIn 0.35s ease both;
+}
+
+/* staggered reveal per card */
+.item-card:nth-child(1)  { animation-delay: 0.02s; }
+.item-card:nth-child(2)  { animation-delay: 0.04s; }
+.item-card:nth-child(3)  { animation-delay: 0.06s; }
+.item-card:nth-child(4)  { animation-delay: 0.08s; }
+.item-card:nth-child(5)  { animation-delay: 0.10s; }
+.item-card:nth-child(6)  { animation-delay: 0.12s; }
+.item-card:nth-child(7)  { animation-delay: 0.14s; }
+.item-card:nth-child(8)  { animation-delay: 0.16s; }
+.item-card:nth-child(9)  { animation-delay: 0.18s; }
+.item-card:nth-child(10) { animation-delay: 0.20s; }
+.item-card:nth-child(11) { animation-delay: 0.22s; }
+.item-card:nth-child(12) { animation-delay: 0.24s; }
+.item-card:nth-child(13) { animation-delay: 0.26s; }
+.item-card:nth-child(14) { animation-delay: 0.28s; }
+.item-card:nth-child(15) { animation-delay: 0.30s; }
+.item-card:nth-child(16) { animation-delay: 0.32s; }
+.item-card:nth-child(17) { animation-delay: 0.34s; }
+.item-card:nth-child(18) { animation-delay: 0.36s; }
+.item-card:nth-child(19) { animation-delay: 0.38s; }
+.item-card:nth-child(20) { animation-delay: 0.40s; }
+.item-card:nth-child(21) { animation-delay: 0.42s; }
+.item-card:nth-child(22) { animation-delay: 0.44s; }
+.item-card:nth-child(23) { animation-delay: 0.46s; }
+.item-card:nth-child(24) { animation-delay: 0.48s; }
+.item-card:nth-child(25) { animation-delay: 0.50s; }
+
+/* ── THUMBNAIL ── */
+.item-thumb {
+    width: var(--card-w);
+    height: var(--card-h);
+    border-radius: var(--radius);
+    background: linear-gradient(145deg, #3a2d5c 0%, #2c2050 100%);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.item-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* placeholder jika tidak ada gambar */
+.item-thumb .no-img {
+    font-size: 3rem;
+    color: rgba(255, 255, 255, 0.08);
+    font-family: 'Freckle Face', cursive;
+}
+
+/* shine overlay */
+.item-thumb::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.07) 0%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.03) 100%
+    );
+    pointer-events: none;
+}
+
+.item-card:hover .item-thumb {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 12px 32px rgba(140, 80, 255, 0.35),
+                0 4px 12px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* ── NAMA KARTU ── */
+.item-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: var(--card-w);
+    text-align: center;
+}
+
+/* ── PAGINATION ── */
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 32px;
+}
+
+.btn-page {
+    font-family: 'Freckle Face', cursive;
+    font-size: 1rem;
+    letter-spacing: 1px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid rgba(155, 110, 224, 0.3);
+    border-radius: 8px;
+    padding: 8px 22px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.18s, border-color 0.18s, transform 0.15s;
+    display: inline-block;
+}
+
+.btn-page:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    color: #fff;
+}
+
+.btn-page.disabled {
+    opacity: 0.3;
+    cursor: default;
+    pointer-events: none;
+}
+
+.page-info {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted);
+    min-width: 90px;
+    text-align: center;
+}
+
+/* ── ANIMASI ── */
+@keyframes cardIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 940px) {
+    :root { --card-w: 140px; --card-h: 196px; }
+}
+
+@media (max-width: 800px) {
+    :root { --card-w: 120px; --card-h: 168px; --gap: 12px; }
+    .items-grid { grid-template-columns: repeat(4, var(--card-w)); }
+}
+
+@media (max-width: 580px) {
+    :root { --card-w: 100px; --card-h: 140px; --gap: 10px; }
+    .items-grid { grid-template-columns: repeat(3, var(--card-w)); }
+    .content { padding: 20px 16px 40px; }
+}

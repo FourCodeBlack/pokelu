@@ -1,0 +1,160 @@
+/* ── Hero Section ── */
+body{
+    overflow: hidden;
+}
+
+.hero {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+}
+
+.hero img.bg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.hero-content {
+    position: absolute;
+    top: 50%;
+    left: 6%;
+    transform: translateY(-50%);
+    overflow: visible;
+}
+
+/* ── Tulisan ── */
+.hero-content h1 {
+    font-family: 'Freckle Face', cursive;
+    font-size: 3rem;
+    color: white;
+    text-shadow:
+        3px 3px 0px #000,
+        -1px -1px 0px #000,
+        1px -1px 0px #000,
+        -1px 1px 0px #000;
+    line-height: 1.1;
+    margin-bottom: 8px;
+}
+
+.hero-content p {
+    font-family: 'Freckle Face', cursive;
+    font-size: 1.1rem;
+    color: white;
+    text-shadow:
+        -2px -2px 0 black,
+         2px -2px 0 black,
+        -2px  2px 0 black,
+         2px  2px 0 black,
+        -2px  0   0 black,
+         2px  0   0 black,
+         0   -2px 0 black,
+         0    2px 0 black;
+    margin-bottom: 24px;
+}
+
+/* ── Button ── */
+.btn-jelajahi {
+    font-family: 'Freckle Face', cursive;
+    font-size: 1.2rem;
+    color: white;
+    background: linear-gradient(135deg, #f72585, #e91e8c);
+    border: none;
+    border-radius: 50px;
+    padding: 14px 36px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+        0 0 18px rgba(247, 37, 133, 0.7),
+        0 4px 0px #a0005a;
+    transition: transform 0.15s, box-shadow 0.15s;
+    animation: pulse-glow 2s ease-in-out infinite;
+    
+}
+
+.btn-jelajahi {
+    text-shadow:
+        -2px -2px 0 black,
+         2px -2px 0 black,
+        -2px  2px 0 black,
+         2px  2px 0 black,
+        -2px  0   0 black,
+         2px  0   0 black,
+         0   -2px 0 black,
+         0    2px 0 black;
+}
+
+.btn-jelajahi::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -75%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+        120deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+    );
+    animation: shimmer 2.5s ease-in-out infinite;
+}
+
+.btn-jelajahi::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50px;
+    border: 2px solid rgba(255, 100, 200, 0.6);
+    animation: ring-expand 2s ease-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow:
+            0 0 18px rgba(247, 37, 133, 0.7),
+            0 0 40px rgba(247, 37, 133, 0.3),
+            0 4px 0px #a0005a;
+    }
+    50% {
+        box-shadow:
+            0 0 30px rgba(247, 37, 133, 1),
+            0 0 70px rgba(247, 37, 133, 0.6),
+            0 4px 0px #a0005a;
+    }
+}
+
+@keyframes shimmer {
+    0%   { left: -75%; }
+    100% { left: 150%; }
+}
+
+@keyframes ring-expand {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1.3);
+        opacity: 0;
+    }
+}
+
+.btn-jelajahi:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow:
+        0 0 40px rgba(247, 37, 133, 1),
+        0 0 80px rgba(247, 37, 133, 0.5),
+        0 6px 0px #a0005a;
+}
+
+.btn-jelajahi:active {
+    transform: translateY(2px) scale(0.97);
+    box-shadow:
+        0 0 10px rgba(247, 37, 133, 0.6),
+        0 2px 0px #a0005a;
+}
