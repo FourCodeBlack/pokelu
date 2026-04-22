@@ -1,0 +1,231 @@
+body {
+    background-color: #1e1030;
+    color: #fff;
+    min-height: 100vh;
+}
+
+/* ── Navbar Jelajah ── */
+.navbar {
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  height: 72px;
+  background: linear-gradient(
+    135deg,
+    #1b1535 0%,
+    #1e1a40 30%,
+    #2a1e5c 55%,
+    #1a1535 80%,
+    #110e28 100%
+  );
+  border-bottom: 1px solid rgba(130, 80, 200, 0.15);
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Glow overlay berdenyut */
+.navbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 60% 120% at 50% 50%,
+    rgba(90, 50, 160, 0.18) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  animation: navbar-pulse 3s ease-in-out infinite;
+}
+
+/* Garis scan bergerak */
+.navbar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(167, 139, 250, 0.08),
+    transparent
+  );
+  animation: navbar-scan 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes navbar-pulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1;   }
+}
+
+@keyframes navbar-scan {
+  0%   { left: -100%; }
+  100% { left: 200%;  }
+}
+
+/* Garis bawah berkilau */
+.navbar-border {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(167, 139, 250, 0.8),
+    rgba(244, 114, 182, 0.8),
+    rgba(167, 139, 250, 0.8),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: border-shimmer 3s linear infinite;
+}
+
+@keyframes border-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Logo kiri ── */
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  position: relative;
+  z-index: 1;
+}
+
+.brand-icon {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+}
+
+.brand-icon img {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(167, 139, 250, 0.6);
+  animation: icon-glow 2.5s ease-in-out infinite;
+  transition: transform 0.3s;
+}
+
+.brand-icon img:hover {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.brand-name {
+  font-family: 'Freckle Face', cursive;
+  font-size: 2rem;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+  user-select: none;
+  animation: text-glow 2.5s ease-in-out infinite;
+  text-shadow:
+    -2px -2px 0 black,
+     2px -2px 0 black,
+    -2px  2px 0 black,
+     2px  2px 0 black,
+    -2px  0   0 black,
+     2px  0   0 black,
+     0   -2px 0 black,
+     0    2px 0 black;
+}
+
+@keyframes text-glow {
+  0%, 100% {
+    text-shadow:
+      -2px -2px 0 black, 2px -2px 0 black,
+      -2px  2px 0 black,  2px  2px 0 black,
+      -2px  0   0 black,  2px  0   0 black,
+       0   -2px 0 black,  0    2px 0 black,
+       0 0 12px rgba(167, 139, 250, 0);
+  }
+  50% {
+    text-shadow:
+      -2px -2px 0 black, 2px -2px 0 black,
+      -2px  2px 0 black,  2px  2px 0 black,
+      -2px  0   0 black,  2px  0   0 black,
+       0   -2px 0 black,  0    2px 0 black,
+       0 0 16px rgba(244, 114, 182, 0.8),
+       0 0 32px rgba(244, 114, 182, 0.4);
+  }
+}
+
+/* ── Icon kanan ── */
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-left: auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* Icon Chat */
+.nav-icon-chat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.nav-icon-chat img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  filter: brightness(0);
+  transition: filter 0.3s, transform 0.3s;
+  animation: chat-glow 2.5s ease-in-out infinite;
+}
+
+.nav-icon-chat:hover img {
+  filter: brightness(0) invert(0.4) sepia(1) saturate(5) hue-rotate(260deg);
+  transform: scale(1.15);
+}
+
+@keyframes chat-glow {
+  0%, 100% { filter: brightness(0) drop-shadow(0 0 4px rgba(167, 139, 250, 0)); }
+  50%       { filter: brightness(0) drop-shadow(0 0 8px rgba(167, 139, 250, 0.6)); }
+}
+
+/* Avatar profil abu-abu */
+.nav-icon-profile {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #b0b0b0, #d8d8d8);
+  border: 2px solid rgba(167, 139, 250, 0.6);
+  animation: icon-glow 2.5s ease-in-out infinite;
+  transition: transform 0.3s;
+}
+
+.profile-avatar:hover {
+  transform: scale(1.1) rotate(5deg);
+}
+
+@keyframes icon-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(167, 139, 250, 0.5),
+                0 0 16px rgba(167, 139, 250, 0.2);
+    border-color: rgba(167, 139, 250, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(244, 114, 182, 0.8),
+                0 0 32px rgba(244, 114, 182, 0.3);
+    border-color: rgba(244, 114, 182, 0.9);
+  }
+}
