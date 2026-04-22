@@ -35,7 +35,7 @@ $data = $response->json();
                         <div class="item-card">
                             <div class="item-thumb">
                                 @if (!empty($item['image']))
-                                    <img src="{{ $item['image'] }}" alt="{{ $item['name'] }}" loading="lazy">
+                                    <img src="{{ $item['image'] }}" alt="{{ $item['name'] }}" loading="lazy" class="{{ (Str::endsWith($item['name'], 'V') || Str::endsWith($item['name'], 'GX')) ? 'holo' : '' }}">
                                 @else
                                     <span class="no-img">?</span>
                                 @endif

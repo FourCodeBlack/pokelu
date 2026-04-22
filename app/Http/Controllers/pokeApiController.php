@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\pokecardFirebase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use function PHPUnit\Framework\returnArgument;
@@ -10,41 +11,29 @@ class pokeApiController extends Controller
 {
     public function getData(Request $request)
     {
-        // Cek langsung ke cards_shuffled yang sudah bersih
-        if (!session()->has('cards_shuffled')) {
-
-            // Ambil raw data (cache session)
-            if (session()->has('pokemon_cards')) {
-                $data = session('pokemon_cards');
-            } else {
-                $response = Http::get('https://api.tcgdex.net/v2/en/cards');
-                $data = $response->json();
-                session(['pokemon_cards' => $data]);
-            }
-
-            // Filter + map SEKALI SAJA, langsung simpan ke session
-            $cards = array_values(array_filter($data, function ($card) {
-                return !empty($card['image']) && !empty($card['name']);
-            }));
-
-            $cards = array_map(function ($card) {
-                $card['image'] = $card['image'] . '/low.webp';
-                return $card;
-            }, $cards);
-
-            $cards = collect($cards)->shuffle()->values()->all();
-            session(['cards_shuffled' => $cards]);
-
-        } else {
-            $cards = session('cards_shuffled');
-        }
-
-        // Pagination
+        // Pagination langsung di Firebase
         $page = $request->input('page', 1);
         $perPage = 20;
         $offset = ($page - 1) * $perPage;
+
+        $db = pokecardFirebase::db();
+
+        // Ambil total dulu (hanya keys, ringan)
+        $total = count($db
+        ->shallow()
+            ->getSnapshot()
+            ->getValue() ?? []);
+
+        // Ambil data sesuai halaman
+        $cards = array_values(
+            $db ->orderByKey()
+                ->limitToFirst($offset + $perPage)
+                ->getSnapshot()
+                ->getValue() ?? []
+        );
+
+        // Slice manual karena Firebase tidak support offset
         $paginated = array_slice($cards, $offset, $perPage);
-        $total = count($cards);
 
         return view('jelajah', [
             'data' => $paginated,
@@ -58,5 +47,30 @@ class pokeApiController extends Controller
         session()->flush();
 
         return redirect('/');
+    }
+    public function sendData() //ADMIN ONLY
+    {
+        if (!pokecardFirebase::exists()) {
+            set_time_limit(300);
+            $response = file_get_contents(storage_path('app/cards.json'));
+            // $response = Http::timeout(120)->get('https://api.tcgdex.net/v2/en/cards');
+            // $data = $response->json();
+            $data = json_decode($response, true);
+            $cards = array_values(array_filter(
+                $data,
+                fn($card) =>
+                !empty($card['image']) && !empty($card['name'])
+            ));
+
+            $cards = array_map(fn($card) => [
+                'id' => $card['id'],
+                'name' => $card['name'],
+                'image' => $card['image'] . '/low.webp',
+            ], $cards);
+
+            pokecardFirebase::set($cards);
+        }
+        return view('index');
+
     }
 }
