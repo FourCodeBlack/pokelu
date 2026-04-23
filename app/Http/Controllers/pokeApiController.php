@@ -20,13 +20,13 @@ class pokeApiController extends Controller
 
         // Ambil total dulu (hanya keys, ringan)
         $total = count($db
-        ->shallow()
+            ->shallow()
             ->getSnapshot()
             ->getValue() ?? []);
 
         // Ambil data sesuai halaman
         $cards = array_values(
-            $db ->orderByKey()
+            $db->orderByKey()
                 ->limitToFirst($offset + $perPage)
                 ->getSnapshot()
                 ->getValue() ?? []
@@ -45,7 +45,7 @@ class pokeApiController extends Controller
     public function reset()
     {
         session()->flush();
-
+        pokecardFirebase::dropAll();
         return redirect('/');
     }
     public function sendData() //ADMIN ONLY
@@ -53,22 +53,32 @@ class pokeApiController extends Controller
         if (!pokecardFirebase::exists()) {
             set_time_limit(300);
             $response = file_get_contents(storage_path('app/cards.json'));
-            // $response = Http::timeout(120)->get('https://api.tcgdex.net/v2/en/cards');
-            // $data = $response->json();
             $data = json_decode($response, true);
+
             $cards = array_values(array_filter(
                 $data,
-                fn($card) =>
-                !empty($card['image']) && !empty($card['name'])
+                fn($card) => !empty($card['image']) && !empty($card['name'])
             ));
 
-            $cards = array_map(fn($card) => [
-                'id' => $card['id'],
-                'name' => $card['name'],
-                'image' => $card['image'] . '/low.webp',
-            ], $cards);
+            // Ubah dari array biasa ke associative array dengan key = id kartu
+            $cards = array_column(
+                array_map(fn($card) => [
+                    'id' => $card['id'],
+                    'name' => $card['name'],
+                    'image' => $card['image'].'/low.png',
+                ], $cards),
+                null,
+                'id'
+            );
 
-            pokecardFirebase::set($cards);
+            // Sanitize key — hapus karakter yang dilarang Firebase
+            $sanitized = [];
+            foreach ($cards as $key => $value) {
+                $cleanKey = str_replace(['.', '#', '$', '[', ']', '/'], '-', $key);
+                $sanitized[$cleanKey] = $value;
+            }
+
+            pokecardFirebase::set($sanitized);
         }
         return view('index');
 

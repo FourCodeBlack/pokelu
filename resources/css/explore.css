@@ -4,8 +4,8 @@
 
 
 :root {
-    --card-w: 160px;
-    --card-h: 224px;
+    --card-w: 220px;
+    --card-h: 308px;
     --gap: 18px;
     --radius: 12px;
     --text: #f0eaf8;
@@ -96,6 +96,97 @@ body {
     justify-content: center;
 }
 
+.item-thumb .glow-spot {
+    position: absolute; inset: 0;
+    border-radius: var(--radius);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 2;
+    background: radial-gradient(
+        circle 80px at var(--mx, 50%) var(--my, 50%),
+        rgba(200, 160, 255, 0.35) 0%,
+        rgba(140, 80, 255, 0.15) 40%,
+        transparent 70%
+    );
+}
+.item-thumb .border-glow {
+    position: absolute; inset: 0;
+    border-radius: var(--radius);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 3;
+    background: radial-gradient(
+        circle 100px at var(--mx, 50%) var(--my, 50%),
+        rgba(238, 226, 255, 0.6) 0%,
+        transparent 70%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box,
+                  linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    padding: 1.5px;
+}
+.item-card:hover .item-thumb .glow-spot,
+.item-card:hover .item-thumb .border-glow {
+    opacity: 1;
+}
+
+/* ── HOLO & 3D LAYERS ── */
+.item-thumb {
+    transform-style: preserve-3d;
+    will-change: transform;
+}
+
+.holo-layer {
+    position: absolute; inset: 0;
+    border-radius: var(--radius);
+    pointer-events: none;
+    z-index: 4;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    background: repeating-linear-gradient(
+        calc(var(--holo-angle, 105deg)),
+        rgba(255,50,50,.06)   0%,  rgba(255,150,0,.06)  8%,
+        rgba(255,255,50,.06)  16%, rgba(50,255,100,.06) 24%,
+        rgba(50,200,255,.06)  32%, rgba(150,50,255,.06) 40%,
+        rgba(255,50,200,.06)  48%, rgba(255,50,50,.06)  56%
+    );
+    mix-blend-mode: screen;
+}
+
+.sparkle-layer {
+    position: absolute; inset: 0;
+    border-radius: var(--radius);
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    background: radial-gradient(
+        ellipse 120px 80px at var(--mx, 50%) var(--my, 50%),
+        rgba(255,255,255,.12) 0%,
+        rgba(220,200,255,.06) 40%,
+        transparent 70%
+    );
+    mix-blend-mode: screen;
+}
+
+/* Aktif hanya untuk kartu holo/rare */
+.item-thumb.holo:hover .holo-layer,
+.item-thumb.holo:hover .sparkle-layer {
+    opacity: 1;
+}
+
+/* Box shadow berbeda tiap tipe */
+.item-thumb.holo:hover {
+    transform: none; /* dihandle JS */
+    box-shadow:
+        0 0 0 1.5px rgba(200,160,255,.5),
+        0 20px 50px rgba(140,80,255,.45),
+        0 4px 16px rgba(0,0,0,.7);
+}
+
 .item-thumb img {
     width: 100%;
     height: 100%;
@@ -124,7 +215,7 @@ body {
     pointer-events: none;
 }
 
-.item-card:hover .item-thumb {
+.item-card:hover .item-thumb:not(.holo) {
     transform: translateY(-5px) scale(1.02);
     box-shadow: 0 12px 32px rgba(140, 80, 255, 0.35),
                 0 4px 12px rgba(0, 0, 0, 0.5),
@@ -209,3 +300,73 @@ body {
     .items-grid { grid-template-columns: repeat(3, var(--card-w)); }
     .content { padding: 20px 16px 40px; }
 }
+
+/* ── TIER LAYERS ── */
+.shimmer-layer {
+    position: absolute; inset: 0;
+    border-radius: var(--radius);
+    pointer-events: none; z-index: 4;
+    opacity: 0; transition: opacity 0.35s ease;
+    background: repeating-linear-gradient(
+        calc(var(--holo-angle, 105deg)),
+        rgba(180,120,255,.05) 0%,  rgba(100,180,255,.05) 25%,
+        rgba(180,120,255,.05) 50%, rgba(100,180,255,.05) 75%,
+        rgba(180,120,255,.05) 100%
+    );
+    mix-blend-mode: screen;
+}
+.gold-layer {
+    position: absolute; inset: 0;
+    border-radius: var(--radius);
+    pointer-events: none; z-index: 6;
+    opacity: 0; transition: opacity 0.35s ease;
+    background: radial-gradient(
+        ellipse 140px 100px at var(--mx, 50%) var(--my, 50%),
+        rgba(255,215,0,.08) 0%, rgba(255,180,0,.04) 50%, transparent 70%
+    );
+    mix-blend-mode: screen;
+}
+
+/* Aktivasi per tier */
+.item-thumb.tier-secret:hover .holo-layer,
+.item-thumb.tier-secret:hover .shimmer-layer,
+.item-thumb.tier-secret:hover .sparkle-layer,
+.item-thumb.tier-secret:hover .gold-layer   { opacity: 1; }
+
+.item-thumb.tier-ultra:hover .shimmer-layer,
+.item-thumb.tier-ultra:hover .sparkle-layer { opacity: 1; }
+
+.item-thumb.tier-holo:hover .shimmer-layer  { opacity: .6; }
+
+/* Box shadow per tier */
+.item-thumb.tier-secret:hover {
+    box-shadow: 0 0 0 1.5px rgba(255,215,0,.5),
+                0 18px 45px rgba(255,160,0,.35),
+                0 4px 14px rgba(0,0,0,.8);
+}
+.item-thumb.tier-ultra:hover {
+    box-shadow: 0 0 0 1px rgba(200,150,255,.45),
+                0 16px 40px rgba(130,70,255,.4),
+                0 4px 12px rgba(0,0,0,.7);
+}
+.item-thumb.tier-holo:hover {
+    box-shadow: 0 0 0 1px rgba(100,180,255,.35),
+                0 14px 32px rgba(60,140,255,.3),
+                0 4px 10px rgba(0,0,0,.6);
+}
+
+/* Ripple */
+.ripple {
+    position: absolute; border-radius: 50%;
+    pointer-events: none; z-index: 10;
+    transform: scale(0); opacity: .55;
+}
+.ripple.go { animation: rippleAnim .5s ease-out forwards; }
+@keyframes rippleAnim {
+    0%   { transform: scale(0); opacity: .55; }
+    100% { transform: scale(4); opacity: 0;   }
+}
+.item-thumb.tier-secret .ripple { background: radial-gradient(circle, rgba(255,215,0,.6), rgba(255,140,0,.2)); }
+.item-thumb.tier-ultra  .ripple { background: radial-gradient(circle, rgba(200,150,255,.6), rgba(120,60,220,.2)); }
+.item-thumb.tier-holo   .ripple { background: radial-gradient(circle, rgba(100,180,255,.5), rgba(60,120,220,.2)); }
+.item-thumb.tier-normal .ripple { background: radial-gradient(circle, rgba(180,140,255,.35), transparent); }

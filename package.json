@@ -16,6 +16,7 @@
     },
     "dependencies": {
         "@popperjs/core": "^2.11.8",
+        "alpinejs": "^3.15.11",
         "bootstrap": "^5.3.8",
         "firebase": "^12.12.1"
     }

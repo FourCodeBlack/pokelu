@@ -25,4 +25,11 @@ class pokecardFirebase extends Model
     public static function set(array $data){
         self::db()->set($data);
     }
+    public static function dropAll(){
+        self::db()->set(null);
+    }
+    public static function searchById(string $id){
+        $dbId = Firebase::database()->getReference("pokemon_card/" . $id)->getValue();
+        return $dbId;
+    }
 }

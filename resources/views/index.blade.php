@@ -9,26 +9,28 @@
 </head>
 
 <body>
+    @section('navbar')
+    @include('layout.navbar')
+@endsection
+
     @extends('layout.app')
-    @push('styles')
-        @vite('resources/css/home.css')
-    @endpush
-    @section('content')
+
+@push('styles')
+    @vite('resources/css/home.css')
+@endpush
 
 
-        @include('layout.navbar')
-
-        <!-- Hero Section -->
-        <div class="hero">
-            <img class="bg" src="{{ asset('images/background_home.webp') }}" alt="Background">
-
-            <div class="hero-content">
-                <h1>CARI KARTUMU SEKARANG!</h1>
-                <p>Data TCG Pokemon Terlengkap</p>
-                <a href="explore" class="btn-jelajahi">Jelajahi ></a>
-            </div>
+@section('content')
+    <!-- Hero Section -->
+    <div class="hero">
+        <img class="bg" src="{{ asset('images/background_home.webp') }}" alt="Background">
+        <div class="hero-content">
+            <h1>CARI KARTUMU SEKARANG!</h1>
+            <p>Data TCG Pokemon Terlengkap</p>
+            <a href="explore" class="btn-jelajahi">Jelajahi ></a>
         </div>
-    @endsection
+    </div>
+@endsection
 
 </body>
 
