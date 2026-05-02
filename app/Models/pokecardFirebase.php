@@ -25,6 +25,9 @@ class pokecardFirebase extends Model
     public static function set(array $data){
         self::db()->set($data);
     }
+    public static function add(array $data){
+        self::db()->push($data);
+    }
     public static function dropAll(){
         self::db()->set(null);
     }

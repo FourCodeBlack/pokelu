@@ -1,8 +1,3 @@
-body {
-    background-color: #1e1030;
-    color: #fff;
-    min-height: 100vh;
-}
 
 .header {
   position: relative;
@@ -36,19 +31,22 @@ body {
 .header-inner {
   position: relative;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
   gap: 20px;
-  max-width: 860px;
+  max-width: 1000vh;
   margin: 0 auto;
   z-index: 1;
 }
  
-.user-info { flex: 1; }
+.user-info { flex: 1;
+
+  align-items: center;
+  justify-content: center; }
  
 .user-name {
   font-family: 'Freckle Face', cursive;
-  font-size: clamp(2rem, 5vw, 3rem);
+  font-size: clamp(3rem, 9vw, 4rem);
   letter-spacing: 2px;
   color: #fff;
   text-shadow: 0 2px 12px rgba(180,120,255,0.3);
@@ -58,7 +56,7 @@ body {
 }
  
 .user-email {
-  font-family: 'Freckle Face', cursive;
+  font-family: 'Fredoka', cursive;
   font-size: clamp(0.85rem, 2vw, 1.1rem);
   color: var(--accent);
   letter-spacing: 1px;
@@ -66,10 +64,13 @@ body {
 }
  
 .avatar-wrap {
+  display: inline-block;
+  position: relative;
   flex-shrink: 0;
   animation: fadeLeft 0.6s 0.15s ease both;
 }
  
+
 .avatar {
   width: clamp(80px, 14vw, 130px);
   height: clamp(80px, 14vw, 130px);
@@ -82,5 +83,46 @@ body {
   justify-content: center;
 }
  
-.avatar svg { width: 55%; height: 55%; opacity: 0.5; }
- 
+.edit {
+  width: clamp(24px, 4vw, 35px);
+  height: auto;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  cursor: pointer;
+}
+
+.liked-tcg{
+  padding: 60px 20px 20px 30px;
+}
+
+.font-family{
+  font-family: 'Freckle Face';
+}
+
+*{
+  outline: 1px solid red;
+}
+.carousel {
+    cursor: grab;
+}
+.carousel:active {
+    cursor: grabbing;
+}
+
+  .wrap { padding: 1rem 0 1.5rem; }
+  .carousel { display: flex; gap: 12px; overflow-x: auto; padding: 0.5rem 0.25rem 1rem; scroll-snap-type: x mandatory; scrollbar-width: none; cursor: grab; }
+  .carousel:active { cursor: grabbing; }
+  .carousel::-webkit-scrollbar { display: none; }
+  .card-item { flex: 0 0 auto; width: 90px; scroll-snap-align: start; }
+  .card-inner { border-radius: 8px; overflow: hidden; border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); aspect-ratio: 2/3; transition: transform 0.2s ease; }
+  .card-item:hover .card-inner { transform: translateY(-4px) scale(1.04); }
+  .card-inner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .pb-track-wrap { position: relative; height: 24px; margin: 4px 0.25rem 0; display: flex; align-items: center; }
+  .pb-track { width: 100%; height: 3px; background: var(--color-border-tertiary); border-radius: 99px; position: relative; }
+  .pb-fill { height: 3px; border-radius: 99px; background: linear-gradient(90deg, #E53935, #B71C1C); width: 0%; transition: width 0.1s linear; }
+  .pb-ball { width: 22px; height: 22px; position: absolute; top: 50%; transform: translate(-50%, -50%); left: 0%; transition: left 0.1s linear; cursor: pointer; }
+  .pb-ball svg { width: 22px; height: 22px; }
+  .pb-ball.spinning svg { animation: spin 0.4s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

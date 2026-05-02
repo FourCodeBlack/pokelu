@@ -555,6 +555,7 @@
       }
     }
   </style>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 
 <body>
@@ -659,8 +660,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script>
+    let justLoggedIn = false;
     firebase.initializeApp({
-      apiKey: "AIzaSyDr7r6PrzHWUX6i_5bMnL9I7eZMcx2AS_s",
+      apiKey: "{{env('FIREBASE_API')}}",
       authDomain: "pokelu-project.firebaseapp.com",
       databaseURL: "https://pokelu-project-default-rtdb.asia-southeast1.firebasedatabase.app",
       projectId: "pokelu-project",
@@ -681,7 +683,7 @@
 
     // Kalau sudah login, langsung redirect
     auth.onAuthStateChanged(async user => {
-      if (user) {
+      if (user && !justLoggedIn) {
         await syncToLaravel(user);
         window.location.href = redirectTo;
       }
@@ -727,12 +729,14 @@
 
       setLoading('btnLogin', true);
       try {
+        justLoggedIn = true;
         await auth.signInWithEmailAndPassword(email, password);
         const user = auth.currentUser;
         await syncToLaravel(user);
         showAlert('Login berhasil! Mengalihkan…', 'success');
         setTimeout(() => window.location.href = redirectTo, 800);
       } catch (e) {
+        justLoggedIn = false;
         showAlert(errMsg(e.code));
       } finally {
         setLoading('btnLogin', false);
@@ -751,12 +755,14 @@
 
       setLoading('btnRegister', true);
       try {
+        justLoggedIn = true;
         const cred = await auth.createUserWithEmailAndPassword(email, password);
-        await syncToLaravel(cred.user);
         await cred.user.updateProfile({ displayName: name });
+        await syncToLaravel(cred.user);
         showAlert('Akun berhasil dibuat! Mengalihkan…', 'success');
         setTimeout(() => window.location.href = redirectTo, 800);
       } catch (e) {
+        justLoggedIn = false;
         showAlert(errMsg(e.code));
       } finally {
         setLoading('btnRegister', false);
@@ -767,15 +773,16 @@
     async function doGoogle() {
       clearAlert();
       try {
-        await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+        justLoggedIn = true;
         const result = await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
         await syncToLaravel(result.user);
         window.location.href = redirectTo;
-        window.location.href = redirectTo;
       } catch (e) {
+        justLoggedIn = false;
         if (e.code !== 'auth/popup-closed-by-user') showAlert(errMsg(e.code));
       }
     }
+
 
     // ── Error messages Indonesia ──
     function errMsg(code) {
@@ -806,19 +813,23 @@
     }
 
     async function syncToLaravel(user) {
-      await fetch('{{ route("auth.firebase") }}', {
+      const token = await user.getIdToken();
+      const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+      const payload = {
+        token: token,
+        uid: user.uid,
+        name: user.displayName,
+        email: user.email,
+        role: 'user',
+        avatar: user.photoURL,
+      };
+
+      // 1. Simpan session Laravel
+      const res = await fetch('{{ route("auth.firebase") }}', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': '{{ csrf_token() }}',
-        },
-        body: JSON.stringify({
-          token: await user.getIdToken(),
-          uid: user.uid,
-          name: user.displayName,
-          email: user.email,
-          avatar: user.photoURL,
-        }),
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+        body: JSON.stringify(payload),
       });
     }
   </script>

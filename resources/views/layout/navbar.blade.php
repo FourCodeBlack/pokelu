@@ -304,6 +304,8 @@
 </style>
 @php
   use App\Models\userLogin;
+  use App\Http\Controllers\userProfile;
+
 @endphp
 
 <nav class="navbar sticky top-0 z-3">
@@ -322,9 +324,14 @@
     </a>
     {{-- Tambah di atas card, setelah .back-btn --}}
     @if (userLogin::isLogin())
+      @php
+
+        $data = userProfile::getUser(userLogin::get('uid'));
+        $pfp = asset('images/avatar/' . $data['pfp'] . '.png');
+      @endphp
       <div style="display:flex;align-items:center;gap:12px;position:relative;z-index:1;">
         <a class="nav-icon-profile" href="{{ route('profile') }}" title="Profil">
-          <div class="profile-avatar"></div>
+          <div class="profile-avatar overflow-hidden"><img src="{{ $pfp}}" alt="" style="transform: scale(1.1)"></div>
         </a>
         <form method="POST" action="{{ route('logout') }}" id="logoutForm">
           @csrf
@@ -334,6 +341,5 @@
     @else
       <a class="btn-login" href="{{ route('login') }}">► LOGIN</a>
     @endif
-    <a href="">{{ userLogin::isLogin() }}</a>
   </div>
 </nav>

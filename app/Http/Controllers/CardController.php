@@ -17,56 +17,56 @@ class CardController extends Controller
   public function show(string $id)
 {
     // Coba Pokemon TCG API dulu (untuk hasil search)
-    // $response = Http::timeout(8)->get("https://api.pokemontcg.io/v2/cards/{$id}");
+    $response = Http::timeout(8)->get("https://api.pokemontcg.io/v2/cards/{$id}");
 
-    // if ($response->successful()) {
-    //     $raw = $response->json()['data'] ?? [];
+    if ($response->successful()) {
+        $raw = $response->json()['data'] ?? [];
 
-    //     $card = [
-    //         'id'          => $raw['id']               ?? $id,
-    //         'name'        => $raw['name']              ?? 'Unknown',
-    //         'image'       => $raw['images']['large']   ?? $raw['images']['small'] ?? null,
-    //         'rarity'      => $raw['rarity']            ?? null,
-    //         'type'        => isset($raw['types'])
-    //                             ? implode(' / ', (array) $raw['types'])
-    //                             : null,
-    //         'stage'       => $raw['subtypes'][0]       ?? null,
-    //         'description' => $raw['flavorText']        ?? null,
-    //         'set'         => $raw['set']['name']       ?? null,
-    //         'hp'          => $raw['hp']                ?? null,
-    //         'logo'        => $raw['set']['images']['logo'] ?? null,
-    //     ];
+        $card = [
+            'id'          => $raw['id']               ?? $id,
+            'name'        => $raw['name']              ?? 'Unknown',
+            'image'       => $raw['images']['large']   ?? $raw['images']['small'] ?? null,
+            'rarity'      => $raw['rarity']            ?? null,
+            'type'        => isset($raw['types'])
+                                ? implode(' / ', (array) $raw['types'])
+                                : null,
+            'stage'       => $raw['subtypes'][0]       ?? null,
+            'description' => $raw['flavorText']        ?? null,
+            'set'         => $raw['set']['name']       ?? null,
+            'hp'          => $raw['hp']                ?? null,
+            'logo'        => $raw['set']['images']['logo'] ?? null,
+        ];
 
-    //     return view('card-detail', compact('card'));
-    // }
-
-    // Fallback ke TCGdex (untuk kartu dari halaman explore)
-    $response = Http::timeout(8)->get("https://api.tcgdex.net/v2/en/cards/{$id}");
-
-    if ($response->failed()) {
-        abort(404, 'Kartu tidak ditemukan.');
+        return view('card-detail', compact('card'));
     }
 
-    $raw = $response->json();
+    // Fallback ke TCGdex (untuk kartu dari halaman explore)
+    // $response = Http::timeout(8)->get("https://api.tcgdex.net/v2/en/cards/{$id}");
 
-    $card = [
-        'id'          => $raw['id']          ?? $id,
-        'name'        => $raw['name']         ?? 'Unknown',
-        'image'       => isset($raw['image'])
-                            ? $raw['image'] . '/low.webp'
-                            : null,
-        'rarity'      => $raw['rarity']       ?? null,
-        'type'        => isset($raw['types'])
-                            ? implode(' / ', (array) $raw['types'])
-                            : null,
-        'stage'       => $raw['stage']        ?? null,
-        'description' => $raw['description']  ?? null,
-        'set'         => $raw['set']['name']  ?? null,
-        'hp'          => $raw['hp']           ?? null,
-        'logo'        => $raw['set']['logo'].'.png' ?? null,
-    ];
+    // if ($response->failed()) {
+    //     abort(404, 'Kartu tidak ditemukan.');
+    // }
 
-    return view('card-detail', compact('card'));
+    // $raw = $response->json();
+
+    // $card = [
+    //     'id'          => $raw['id']          ?? $id,
+    //     'name'        => $raw['name']         ?? 'Unknown',
+    //     'image'       => isset($raw['image'])
+    //                         ? $raw['image'] . '/low.webp'
+    //                         : null,
+    //     'rarity'      => $raw['rarity']       ?? null,
+    //     'type'        => isset($raw['types'])
+    //                         ? implode(' / ', (array) $raw['types'])
+    //                         : null,
+    //     'stage'       => $raw['stage']        ?? null,
+    //     'description' => $raw['description']  ?? '-',
+    //     'set'         => $raw['set']['name']  ?? null,
+    //     'hp'          => $raw['hp']           ?? null,
+    //     'logo'        => $raw['set']['logo'].'.png' ?? null,
+    // ];
+
+    // return view('card-detail', compact('card'));
 }
 
 public function search(Request $request)

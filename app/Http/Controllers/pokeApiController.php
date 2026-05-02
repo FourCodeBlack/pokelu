@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FirebaseHelper;
 use App\Models\pokecardFirebase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
@@ -25,15 +26,12 @@ class pokeApiController extends Controller
             ->getValue() ?? []);
 
         // Ambil data sesuai halaman
-        $cards = array_values(
-            $db->orderByKey()
-                ->limitToFirst($offset + $perPage)
-                ->getSnapshot()
-                ->getValue() ?? []
-        );
+        $cards = $db->orderByKey()
+            ->limitToFirst($offset + $perPage)
+            ->getSnapshot()
+            ->getValue() ?? [];
 
-        // Slice manual karena Firebase tidak support offset
-        $paginated = array_slice($cards, $offset, $perPage);
+        $paginated = array_slice($cards, $offset, $perPage, true);
 
         return view('jelajah', [
             'data' => $paginated,
@@ -48,39 +46,69 @@ class pokeApiController extends Controller
         pokecardFirebase::dropAll();
         return redirect('/');
     }
-    public function sendData() //ADMIN ONLY
+    // public function sendData() //ADMIN ONLY
+    // {
+    //     if (!pokecardFirebase::exists()) {
+    //         set_time_limit(300);
+    //         $response = file_get_contents(storage_path('app/cards.json'));
+    //         $data = json_decode($response, true);
+
+    //         $cards = array_values(array_filter(
+    //             $data,
+    //             fn($card) => !empty($card['image']) && !empty($card['name'])
+    //         ));
+
+    //         // Ubah dari array biasa ke associative array dengan key = id kartu
+    //         $cards = array_column(
+    //             array_map(fn($card) => [
+    //                 'id' => $card['id'],
+    //                 'name' => $card['name'],
+    //                 'image' => $card['image'] . '/',
+    //             ], $cards),
+    //             null,
+    //             'id'
+    //         );
+
+    //         // Sanitize key — hapus karakter yang dilarang Firebase
+    //         $sanitized = [];
+    //         foreach ($cards as $key => $value) {
+    //             $cleanKey = str_replace(['.', '#', '$', '[', ']', '/'], '-', $key);
+    //             $sanitized[$cleanKey] = $value;
+    //         }
+
+    //         pokecardFirebase::set($sanitized);
+    //     }
+    //     return view('index');
+
+    // }
+    public function sendData()
     {
-        if (!pokecardFirebase::exists()) {
-            set_time_limit(300);
-            $response = file_get_contents(storage_path('app/cards.json'));
-            $data = json_decode($response, true);
+        $page = 1;
+        $pageSize = 250;
+        $send = [];
 
-            $cards = array_values(array_filter(
-                $data,
-                fn($card) => !empty($card['image']) && !empty($card['name'])
-            ));
+        do {
+            $response = Http::get('https://api.pokemontcg.io/v2/cards', [
+                'page' => $page,
+                'pageSize' => $pageSize
+            ]);
 
-            // Ubah dari array biasa ke associative array dengan key = id kartu
-            $cards = array_column(
-                array_map(fn($card) => [
+            $data = $response->json();
+
+            foreach ($data['data'] as $card) {
+                $send[] = [
                     'id' => $card['id'],
                     'name' => $card['name'],
-                    'image' => $card['image'].'/low.png',
-                ], $cards),
-                null,
-                'id'
-            );
-
-            // Sanitize key — hapus karakter yang dilarang Firebase
-            $sanitized = [];
-            foreach ($cards as $key => $value) {
-                $cleanKey = str_replace(['.', '#', '$', '[', ']', '/'], '-', $key);
-                $sanitized[$cleanKey] = $value;
+                    'imageLow' => $card['images']['small'] ?? null,
+                    'imageLarge' => $card['images']['large'] ?? null,
+                    'rarity' => $card['rarity'] ?? 'Unknown',
+                ];
             }
 
-            pokecardFirebase::set($sanitized);
-        }
-        return view('index');
+            $page++;
+        } while (count($data['data']) > 0);
+
+        pokecardFirebase::set($send);
 
     }
 }

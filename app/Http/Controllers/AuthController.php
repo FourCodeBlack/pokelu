@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FirebaseHelper;
 use Illuminate\Http\Request;
 
 class AuthController extends Controller
@@ -75,6 +76,7 @@ class AuthController extends Controller
 
         $redirect = $request->input('redirect', '/');
 
+
         return redirect($redirect)->with('success', 'Selamat datang, ' . $matched['name'] . '!');
     }
 
@@ -100,6 +102,15 @@ class AuthController extends Controller
             'uid' => $request->input('uid'),
         ]);
 
+        $uid = $request->input('uid');
+        if (!FirebaseHelper::adakah("users/{$uid}")) {
+            FirebaseHelper::buatParent("users/{$uid}", [
+                'email' => $request->input('email'),
+                'name' => $request->input('name'),
+                'role' => 'user',
+                'pfp' => 'pfp3',
+            ]);
+        }
         return response()->json(['success' => true]);
     }
 }
