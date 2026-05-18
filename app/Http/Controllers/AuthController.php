@@ -69,10 +69,21 @@ class AuthController extends Controller
 
         // 2. baru simpan session
         $request->session()->put('user', [
+            'uid' => $matched['uid'],
             'email' => $matched['email'],
             'name' => $matched['name'],
             'role' => $matched['role'],
         ]);
+        $uid = $matched['uid'];
+
+        if (!FirebaseHelper::adakah("users/$uid")) {
+            FirebaseHelper::buatParent("users/$uid", [
+                'email' => $matched['email'],
+                'name' => $matched['name'],
+                'role' => $matched['role'],
+                'pfp' => 'pfp3',
+            ]);
+        }
 
         $redirect = $request->input('redirect', '/');
 

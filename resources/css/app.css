@@ -41,3 +41,7 @@ body {
 img{
     user-select: none;
 }
+
+.font{
+  font-family: 'Fredoka', cursive;
+}

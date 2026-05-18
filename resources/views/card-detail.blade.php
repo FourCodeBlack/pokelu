@@ -1,5 +1,5 @@
 @section('navbar')
-    @include('layout.navbar')
+  @include('layout.navbar')
 @endsection
 @extends('layout.app')
 
@@ -64,15 +64,50 @@
             </div>
             <div class="price-offers" x-text="priceStats.count + ' offers available'"></div>
           </div>
+          @php
+            use App\Models\FirebaseHelper;
+            $uid = session('user.uid');
 
-          <button class="btn-wish" @click="toggleWish()" :class="{ active: wished }">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path
-                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-            </svg>
-            <span x-text="wished ? 'Wishlisted' : 'Add to Wishlist'"></span>
-          </button>
+            $isWishlisted = $uid
+              ? FirebaseHelper::adakah("users/$uid/wishlist/" . $card['id'])
+              : false;
+            $data = FirebaseHelper::baca("users/$uid");
+          @endphp
+          <form action="{{ route('wishlist.add') }}" method="post" x-data="{
+                                      wished: {{ $isWishlisted ? 'true' : 'false' }},
+
+                                      async toggleWish() {
+
+                                          const response = await fetch('/wishlist/add', {
+                                              method: 'POST',
+                                              headers: {
+                                                  'Content-Type': 'application/json',
+                                                  'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                              },
+                                              body: JSON.stringify({
+                                                  id: '{{ $card['id'] }}'
+                                              })
+                                          });
+
+                                          const data = await response.json();
+
+                                          if(data.success){
+                                              this.wished = data.wished;
+                                          }
+                                      }
+                                  }">
+            @csrf
+            <input type="hidden" name="id" value="{{ $card['id'] }}">
+            <button class="btn-wish" @click="toggleWish" :class="{ active: wished }" type="button">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path
+                  d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+              <span x-text="wished ? 'Wishlisted' : 'Add to Wishlist'"></span>
+            </button>
+          </form>
+
         </div>
       </div>
     </section>
@@ -123,9 +158,8 @@
         {{-- ── USER BAR (sudah login) ── --}}
         <div class="user-bar" x-show="currentUser" x-cloak>
           <div class="user-info">
-            <img :src="currentUser?.photoURL || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + currentUser?.uid"
-              class="user-avatar">
-            <span x-text="currentUser?.displayName || currentUser?.email || 'Anonymous'"></span>
+            <img src="{{ asset('images/avatar/' . ($data['pfp'] ?? 'default') . '.png') }}" class="user-avatar">
+            <span x-text="currentUser?.displayName || currentUser?.email || 'Anonymous'" class="text-light font"></span>
           </div>
           <button class="btn-logout" @click="logout()">Keluar</button>
         </div>
@@ -353,7 +387,7 @@ dengan seluruh kode di bawah ini
     }
 
     const auth = firebase.auth();
-    const db   = firebase.database();
+    const db = firebase.database();
     const FB_TIMESTAMP = firebase.database.ServerValue.TIMESTAMP;
 
     function snapshotToArray(snapshot) {
@@ -515,8 +549,7 @@ dengan seluruh kode di bawah ini
         },
 
         toggleWish() {
-          this.wished = !this.wished;
-          localStorage.setItem('wish_' + this.cardId, JSON.stringify(this.wished));
+
         },
 
         timeAgo(ts) {

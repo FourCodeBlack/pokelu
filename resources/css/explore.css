@@ -4,8 +4,8 @@
 
 
 :root {
-    --card-w: 220px;
-    --card-h: 308px;
+    --card-w: 260px;
+    --card-h: 364px;
     --gap: 18px;
     --radius: 12px;
     --text: #f0eaf8;
@@ -38,9 +38,11 @@ body {
 /* ── GRID: 5 kolom ── */
 .items-grid {
     display: grid;
-    grid-template-columns: repeat(5, var(--card-w));
-    gap: var(--gap);
-    min-height: calc(var(--card-h) * 5 + var(--gap) * 4 + 5 * 28px);
+    grid-template-columns: repeat(auto-fill, minmax(var(--card-w), var(--card-w)));
+    column-gap: 24px;
+    row-gap: 40px;
+    align-items: start;
+    justify-content: center;
 }
 
 /* ── CARD ── */
@@ -50,6 +52,8 @@ body {
     align-items: center;
     gap: 8px;
     cursor: pointer;
+    width: 100%;
+    max-width: var(--card-w);
     animation: cardIn 0.35s ease both;
 }
 
@@ -296,9 +300,16 @@ body {
 }
 
 @media (max-width: 580px) {
-    :root { --card-w: 100px; --card-h: 140px; --gap: 10px; }
-    .items-grid { grid-template-columns: repeat(3, var(--card-w)); }
-    .content { padding: 20px 16px 40px; }
+    :root {
+        --card-w: 135px;
+        --card-h: 189px;
+        --gap: 16px;
+    }
+
+    .items-grid {
+        grid-template-columns: repeat(3, var(--card-w));
+        justify-content: center;
+    }
 }
 
 /* ── TIER LAYERS ── */

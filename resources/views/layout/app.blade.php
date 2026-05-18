@@ -6,8 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pokelu</title>
     <link href="https://fonts.googleapis.com/css2?family=Freckle+Face&display=swap" rel="stylesheet">
+    
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 
 <body>

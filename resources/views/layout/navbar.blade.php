@@ -319,16 +319,17 @@
   </a>
 
   <div class="navbar-right">
-    <a class="nav-icon-chat" href="{{ route('chat') }}" title="Chat">
-      <img src="{{ asset('images/icon_chat.png') }}" alt="Chat">
-    </a>
+
     {{-- Tambah di atas card, setelah .back-btn --}}
     @if (userLogin::isLogin())
       @php
-
-        $data = userProfile::getUser(userLogin::get('uid'));
-        $pfp = asset('images/avatar/' . $data['pfp'] . '.png');
+        $uid = userLogin::get('uid');
+        $data = $uid ? userProfile::getUser($uid) : null;
+        $pfp = asset('images/avatar/' . ($data['pfp'] ?? 'pfp3') . '.png');
       @endphp
+      <a class="nav-icon-chat" href="{{ route('chat') }}" title="Chat">
+        <img src="{{ asset('images/icon_chat.png') }}" alt="Chat">
+      </a>
       <div style="display:flex;align-items:center;gap:12px;position:relative;z-index:1;">
         <a class="nav-icon-profile" href="{{ route('profile') }}" title="Profil">
           <div class="profile-avatar overflow-hidden"><img src="{{ $pfp}}" alt="" style="transform: scale(1.1)"></div>

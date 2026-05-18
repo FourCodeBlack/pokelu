@@ -6,6 +6,8 @@ use App\Http\Controllers\searchPokeName;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\userProfile;
+use App\Http\Controllers\user;
+use App\Http\Controllers\wishlist;
 use Illuminate\Support\Facades\Route;
 
 // ── HALAMAN UTAMA ──
@@ -49,6 +51,9 @@ Route::get('/data',              [pokeApiController::class, 'sendData']);
 Route::get('/reset/all',         [pokeApiController::class, 'reset']);
 Route::get('/reset/iya/konfirmasi', [pokeApiController::class, 'reset']);
 
+
+//POST
+Route::post('/wishlist/add', [wishlist::class, 'addWishlist'])->name('wishlist.add');
 
 
 Route::post('/auth/firebase', [AuthController::class, 'firebaseLogin'])->name('auth.firebase');
