@@ -381,3 +381,19 @@ body {
 .item-thumb.tier-ultra  .ripple { background: radial-gradient(circle, rgba(200,150,255,.6), rgba(120,60,220,.2)); }
 .item-thumb.tier-holo   .ripple { background: radial-gradient(circle, rgba(100,180,255,.5), rgba(60,120,220,.2)); }
 .item-thumb.tier-normal .ripple { background: radial-gradient(circle, rgba(180,140,255,.35), transparent); }
+
+.pagination {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.page-button {
+    background: #9b6be8;
+    color: white;
+    padding: 12px 32px;
+    border-radius: 14px;
+    text-decoration: none;
+    font-weight: bold;
+}

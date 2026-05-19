@@ -1,24 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
+@extends('layout.app')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pokelu</title>
-    <link href="https://fonts.googleapis.com/css2?family=Freckle+Face&display=swap" rel="stylesheet">
-</head>
-
-<body>
-    @section('navbar')
+@section('navbar')
     @include('layout.navbar')
 @endsection
-
-    @extends('layout.app')
 
 @push('styles')
     @vite('resources/css/home.css')
 @endpush
-
 
 @section('content')
     <!-- Hero Section -->
@@ -31,7 +19,3 @@
         </div>
     </div>
 @endsection
-
-</body>
-
-</html>

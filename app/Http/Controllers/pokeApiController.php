@@ -7,31 +7,49 @@ use App\Models\pokecardFirebase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use function PHPUnit\Framework\returnArgument;
+use Illuminate\Support\Facades\Cache;
+
 
 class pokeApiController extends Controller
 {
+
     public function getData(Request $request)
     {
-        // Pagination langsung di Firebase
-        $page = $request->input('page', 1);
+        $page = (int) $request->input('page', 1);
         $perPage = 20;
         $offset = ($page - 1) * $perPage;
 
-        $db = pokecardFirebase::db();
+        $today = now()->format('Y-m-d');
+        $cacheKey = 'daily_random_cards_' . $today;
 
-        // Ambil total dulu (hanya keys, ringan)
-        $total = count($db
-            ->shallow()
-            ->getSnapshot()
-            ->getValue() ?? []);
+        $randomizedCards = Cache::remember($cacheKey, now()->endOfDay(), function () use ($today) {
+            $db = pokecardFirebase::db();
 
-        // Ambil data sesuai halaman
-        $cards = $db->orderByKey()
-            ->limitToFirst($offset + $perPage)
-            ->getSnapshot()
-            ->getValue() ?? [];
+            $cards = $db->getSnapshot()->getValue() ?? [];
 
-        $paginated = array_slice($cards, $offset, $perPage, true);
+            $keys = array_keys($cards);
+
+            mt_srand(crc32($today));
+            shuffle($keys);
+            mt_srand();
+
+            $result = [];
+
+            foreach ($keys as $key) {
+                $result[$key] = $cards[$key];
+            }
+
+            return $result;
+        });
+
+        $total = count($randomizedCards);
+
+        $paginated = array_slice(
+            $randomizedCards,
+            $offset,
+            $perPage,
+            true
+        );
 
         return view('jelajah', [
             'data' => $paginated,

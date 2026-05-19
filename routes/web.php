@@ -54,6 +54,10 @@ Route::get('/reset/iya/konfirmasi', [pokeApiController::class, 'reset']);
 
 //POST
 Route::post('/wishlist/add', [wishlist::class, 'addWishlist'])->name('wishlist.add');
+use App\Http\Controllers\ProfileController;
+
+Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
 
 
 Route::post('/auth/firebase', [AuthController::class, 'firebaseLogin'])->name('auth.firebase');

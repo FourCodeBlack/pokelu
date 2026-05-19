@@ -12,6 +12,9 @@
 
     {{-- ░░ HERO SECTION ░░ --}}
     <section class="card-hero">
+      <a href="{{ url()->previous() }}" class="back-floating">
+        ← Back
+      </a>
       <div class="hero-bg" style="--img:url('{{ asset('images/Pokelubg.webp') }}')"></div>
 
       <div class="hero-inner">
@@ -74,28 +77,28 @@
             $data = FirebaseHelper::baca("users/$uid");
           @endphp
           <form action="{{ route('wishlist.add') }}" method="post" x-data="{
-                                      wished: {{ $isWishlisted ? 'true' : 'false' }},
+                                                              wished: {{ $isWishlisted ? 'true' : 'false' }},
 
-                                      async toggleWish() {
+                                                              async toggleWish() {
 
-                                          const response = await fetch('/wishlist/add', {
-                                              method: 'POST',
-                                              headers: {
-                                                  'Content-Type': 'application/json',
-                                                  'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                                              },
-                                              body: JSON.stringify({
-                                                  id: '{{ $card['id'] }}'
-                                              })
-                                          });
+                                                                  const response = await fetch('/wishlist/add', {
+                                                                      method: 'POST',
+                                                                      headers: {
+                                                                          'Content-Type': 'application/json',
+                                                                          'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                                                      },
+                                                                      body: JSON.stringify({
+                                                                          id: '{{ $card['id'] }}'
+                                                                      })
+                                                                  });
 
-                                          const data = await response.json();
+                                                                  const data = await response.json();
 
-                                          if(data.success){
-                                              this.wished = data.wished;
-                                          }
-                                      }
-                                  }">
+                                                                  if(data.success){
+                                                                      this.wished = data.wished;
+                                                                  }
+                                                              }
+                                                          }">
             @csrf
             <input type="hidden" name="id" value="{{ $card['id'] }}">
             <button class="btn-wish" @click="toggleWish" :class="{ active: wished }" type="button">
@@ -166,8 +169,8 @@
 
         {{-- ── MARKET HEADER ── --}}
         <div class="market-header">
-          <h2 class="market-title">
-            <span class="market-title-icon">🏪</span>
+          <h2 class="market-title text-light">
+            <span class="market-title-icon text-light">🏪</span>
             POKELU MARKET
           </h2>
           <span class="market-count" x-text="offers.length + ' offers'"></span>
@@ -196,7 +199,7 @@
           <template x-if="offers.length === 0">
             <div class="empty-state">
               <span>📭</span>
-              <p>Belum ada penawaran. Jadilah yang pertama!</p>
+              <p class="text-light">Belum ada penawaran. Jadilah yang pertama!</p>
             </div>
           </template>
 
@@ -204,10 +207,10 @@
             <div class="offer-card">
               <div class="offer-top">
                 <div class="offer-seller">
-                  <img :src="offer.photoURL || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + offer.uid"
+                  <img :src="'/images/avatar/' + (offer.resolvedPfp || offer.photoURL || 'default') + '.png'"
                     class="offer-avatar">
                   <div>
-                    <span class="offer-seller-name" x-text="offer.displayName || 'Anonymous'"></span>
+                    <span class="offer-seller-name text-light" x-text="offer.displayName || 'Anonymous'"></span>
                     <span class="offer-seller-sub"
                       x-text="offer.soldCount ? offer.soldCount + ' cards sold' : 'New seller'"></span>
                   </div>
@@ -229,11 +232,11 @@
               <div class="offer-thread">
                 <template x-for="reply in (offer.replies || [])" :key="reply.id">
                   <div class="thread-item" :class="{ 'thread-mine': reply.uid === currentUser?.uid }">
-                    <img :src="reply.photoURL || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + reply.uid"
+                    <img :src="'/images/avatar/' + (reply.resolvedPfp || reply.photoURL || 'default') + '.png'"
                       class="thread-avatar">
                     <div class="thread-bubble">
                       <span class="thread-name" x-text="reply.displayName || 'Anonymous'"></span>
-                      <p class="thread-text" x-text="reply.text"></p>
+                      <p class="thread-text text-light" x-text="reply.text"></p>
                     </div>
                   </div>
                 </template>
@@ -256,12 +259,11 @@
         {{-- ── GENERAL COMMENTS ── --}}
         {{-- ── GENERAL COMMENTS ── --}}
         <div class="comments-section" id="diskusi">
-          <h3 class="comments-title">💬 Diskusi Kartu</h3>
+          <h3 class="comments-title text-light">💬 Diskusi Kartu</h3>
 
           {{-- Form komentar: tampil jika sudah login via Firebase Auth --}}
           <div class="comment-form" x-show="currentUser" x-cloak>
-            <img :src="currentUser?.photoURL || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + currentUser?.uid"
-              class="comment-avatar">
+            <img :src="'/images/avatar/' + (currentUserPfp || 'default') + '.png'" class="comment-avatar">
             <div class="comment-input-wrap">
               <textarea x-model="newComment" placeholder="Tulis komentar…" class="form-textarea" rows="2"></textarea>
               <button class="btn-comment" @click="postComment()" :disabled="!newComment.trim()">Kirim</button>
@@ -313,7 +315,9 @@
           <div class="comments-list">
             <template x-for="c in comments" :key="c.id">
               <div class="comment-item">
-                <img :src="c.photoURL || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + c.uid" class="comment-avatar">
+                <img :src="'/images/avatar/' + (c.resolvedPfp || c.photoURL || 'default') + '.png'"
+                  class="comment-avatar">
+                {{-- BREAKPOINT --}}
                 <div class="comment-body">
                   <div class="comment-header">
                     <span class="comment-name" x-text="c.displayName || 'Anonymous'"></span>
@@ -359,21 +363,12 @@
 
 @endsection
 
-{{--
-═══════════════════════════════════════════════════════
-GANTI bagian @push('scripts') di card-detail.blade.php
-dengan seluruh kode di bawah ini
-═══════════════════════════════════════════════════════
---}}
 @push('scripts')
-  {{-- 1. Firebase SDK DULU --}}
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 
-  {{-- 2. Definisi cardDetail SEBELUM Alpine load --}}
   <script>
-    // Cek Firebase sudah ada atau belum (cegah double init)
     if (!firebase.apps.length) {
       firebase.initializeApp({
         apiKey: "AIzaSyDr7r6PrzHWUX6i_5bMnL9I7eZMcx2AS_s",
@@ -398,11 +393,12 @@ dengan seluruh kode di bawah ini
       return result;
     }
 
-    // Daftarkan ke Alpine SEBELUM alpine load lewat alpine:init
     document.addEventListener('alpine:init', () => {
       Alpine.data('cardDetail', (cardId) => ({
         cardId,
         currentUser: null,
+        currentUserPfp: 'default',
+        pfpCache: {},
         showEmailLogin: false,
         emailInput: '',
         passInput: '',
@@ -417,13 +413,12 @@ dengan seluruh kode di bawah ini
         chatTarget: null,
         chatMessages: [],
         chatDraft: '',
-        _chatOff: null,
 
-        init() {
-          auth.onAuthStateChanged(user => {
+        async init() {
+          auth.onAuthStateChanged(async user => {
             this.currentUser = user;
             if (user) {
-              this.wished = JSON.parse(localStorage.getItem('wish_' + this.cardId) || 'false');
+              this.currentUserPfp = await this.fetchPfp(user.uid);
               if (window.location.hash === '#diskusi') {
                 this.$nextTick(() => {
                   const section = document.getElementById('diskusi');
@@ -431,31 +426,74 @@ dengan seluruh kode di bawah ini
                   history.replaceState(null, '', window.location.pathname);
                 });
               }
+            } else {
+              this.currentUserPfp = 'default';
             }
           });
 
-          db.ref(`cards/${this.cardId}/offers`).orderByChild('createdAt').on('value', snapshot => {
+          db.ref(`cards/${this.cardId}/offers`).orderByChild('createdAt').on('value', async snapshot => {
             const arr = snapshotToArray(snapshot).reverse();
-            this.offers = arr.map(o => ({ ...o, _replyDraft: '' }));
+
+            const offerUids = [...new Set(arr.map(o => o.uid).filter(Boolean))];
+            await Promise.all(offerUids.map(uid => this.fetchPfp(uid)));
+
+            this.offers = arr.map(o => ({
+              ...o,
+              _replyDraft: '',
+              resolvedPfp: this.pfpCache[o.uid] || o.photoURL || 'default'
+            }));
+
             this.calcPriceStats();
             this.offers.forEach(o => this.loadReplies(o));
           });
 
-          db.ref(`cards/${this.cardId}/comments`).orderByChild('createdAt').limitToLast(50).on('value', snapshot => {
-            this.comments = snapshotToArray(snapshot).reverse();
+          db.ref(`cards/${this.cardId}/comments`).orderByChild('createdAt').limitToLast(50).on('value', async snapshot => {
+            const arr = snapshotToArray(snapshot).reverse();
+            // Fetch pfp untuk setiap uid unik di comments
+            const uids = [...new Set(arr.map(c => c.uid).filter(Boolean))];
+            await Promise.all(uids.map(uid => this.fetchPfp(uid)));
+
+            this.comments = arr.map(c => ({
+              ...c,
+              resolvedPfp: this.pfpCache[c.uid] || 'default'
+            }));
           });
+        },
+
+        // Fetch pfp dari DB dengan cache — tidak akan double fetch uid yang sama
+        async fetchPfp(uid) {
+          if (!uid) return 'default';
+          if (this.pfpCache[uid]) return this.pfpCache[uid];
+          try {
+            const snap = await db.ref(`users/${uid}/pfp`).once('value');
+            // console.log('fetchPfp', uid, snap.val()); // Debugging line, can be removed
+            this.pfpCache[uid] = snap.val() || 'default';
+          } catch (e) {
+            console.error('fetchPfp error', e); // <-- dan ini
+            this.pfpCache[uid] = 'default';
+          }
+          return this.pfpCache[uid];
         },
 
         async loginGoogle() {
           const provider = new firebase.auth.GoogleAuthProvider();
           try { await auth.signInWithPopup(provider); } catch (e) { this.authError = e.message; }
         },
+
         async loginEmail() {
           try {
             await auth.signInWithEmailAndPassword(this.emailInput, this.passInput);
             this.showEmailLogin = false;
           } catch (e) { this.authError = e.message; }
         },
+
+        async registerEmail() {
+          try {
+            await auth.createUserWithEmailAndPassword(this.emailInput, this.passInput);
+            this.showEmailLogin = false;
+          } catch (e) { this.authError = e.message; }
+        },
+
         async logout() { await auth.signOut(); },
 
         async postOffer() {
@@ -465,7 +503,7 @@ dengan seluruh kode di bawah ini
             await db.ref(`cards/${this.cardId}/offers`).push({
               uid: u.uid,
               displayName: u.displayName || u.email,
-              photoURL: u.photoURL || null,
+              photoURL: this.currentUserPfp,
               price: parseFloat(this.newOffer.price),
               condition: this.newOffer.condition || '',
               desc: this.newOffer.desc,
@@ -476,9 +514,19 @@ dengan seluruh kode di bawah ini
         },
 
         loadReplies(offer) {
-          db.ref(`cards/${this.cardId}/offers/${offer.id}/replies`).orderByChild('createdAt').on('value', snapshot => {
+          db.ref(`cards/${this.cardId}/offers/${offer.id}/replies`).orderByChild('createdAt').on('value', async snapshot => {
+            const replies = snapshotToArray(snapshot);
+
+            const uids = [...new Set(replies.map(r => r.uid).filter(Boolean))];
+            await Promise.all(uids.map(uid => this.fetchPfp(uid)));
+
             const idx = this.offers.findIndex(o => o.id === offer.id);
-            if (idx > -1) this.offers[idx].replies = snapshotToArray(snapshot);
+            if (idx > -1) {
+              this.offers[idx].replies = replies.map(r => ({
+                ...r,
+                resolvedPfp: this.pfpCache[r.uid] || r.photoURL || 'default'
+              }));
+            }
           });
         },
 
@@ -489,6 +537,7 @@ dengan seluruh kode di bawah ini
             await db.ref(`cards/${this.cardId}/offers/${offer.id}/replies`).push({
               uid: u.uid,
               displayName: u.displayName || u.email,
+              photoURL: this.currentUserPfp,
               text: offer._replyDraft.trim(),
               createdAt: FB_TIMESTAMP
             });
@@ -514,7 +563,7 @@ dengan seluruh kode di bawah ini
             await db.ref(`cards/${this.cardId}/comments`).push({
               uid: u.uid,
               displayName: u.displayName || u.email,
-              photoURL: u.photoURL || null,
+              photoURL: this.currentUserPfp,
               text: this.newComment.trim(),
               createdAt: FB_TIMESTAMP
             });
@@ -522,35 +571,25 @@ dengan seluruh kode di bawah ini
           } catch (e) { console.error(e); }
         },
 
-        // Redirect ke halaman chat
         startChat(offer) {
           if (!this.currentUser) return;
           const roomId = [this.currentUser.uid, offer.uid].sort().join('_') + '_' + this.cardId;
-          // Simpan info room dulu ke Firebase agar sidebar chat keisi
           db.ref(`user_rooms/${this.currentUser.uid}/${roomId}`).once('value').then(snap => {
             if (!snap.exists()) {
               db.ref(`user_rooms/${this.currentUser.uid}/${roomId}`).set({
                 name: offer.displayName || 'Penjual',
-                avatar: offer.photoURL || null,
+                avatar: offer.resolvedPfp || 'default',
                 lastMsg: '',
                 lastTs: Date.now(),
                 partnerId: offer.uid,
               });
-              db.ref(`user_rooms/${offer.uid}/${roomId}`).set({
-                name: this.currentUser.displayName || this.currentUser.email,
-                avatar: this.currentUser.photoURL || null,
-                lastMsg: '',
-                lastTs: Date.now(),
-                partnerId: this.currentUser.uid,
-              });
+              // Do NOT write partner's user_rooms from client; partner should create/update their own entry.
             }
             window.location.href = `/chat?room=${roomId}&sellerId=${offer.uid}&sellerName=${encodeURIComponent(offer.displayName || 'Penjual')}&cardId=${this.cardId}`;
           });
         },
 
-        toggleWish() {
-
-        },
+        toggleWish() { },
 
         timeAgo(ts) {
           if (!ts) return '';
@@ -563,11 +602,8 @@ dengan seluruh kode di bawah ini
       }));
     });
   </script>
-
-  {{-- 3. Alpine TERAKHIR — tanpa defer agar alpine:init event masih bisa ditangkap --}}
   <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
 
-  {{-- 4. Card visual effect (tidak berubah) --}}
   <script>
     const wrap = document.getElementById('cardWrap');
     const card = document.getElementById('cardEl');

@@ -22,7 +22,9 @@
                 <div class="avatar">
                     <img src="{{ $pfp }}" alt="">
                 </div>
-                <img src="{{ asset('images/pen.png') }}" alt="" class="edit">
+                <a href="{{ route('profile.edit') }}">
+                    <img src="{{ asset('images/pen.png') }}" alt="" class="edit">
+                </a>
             </div>
             <div class="user-info">
                 <h1 class="user-name">{{ $data['name'] }}</h1>

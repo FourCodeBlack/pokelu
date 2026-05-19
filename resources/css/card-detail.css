@@ -762,8 +762,6 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-s
 
 [x-cloak] { display: none !important; }
 
-/* ── HERO ── */
-.detail-page { min-height: 100vh; }
 
 .card-hero {
   position: relative;
@@ -785,7 +783,7 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-s
   filter: brightness(0.4);
 }
 
-.hero-inner {
+.hero-inner{
   position: relative;
   z-index: 1;
   max-width: 960px;
@@ -794,7 +792,8 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-s
   gap: 48px;
   align-items: center;
   justify-content: center;
-  transform: translateY(-10vh) scale(1.2);
+
+  transform: scale(1.1);
 }
 /* Card visual */
 .card-visual-wrap {
@@ -1748,4 +1747,33 @@ a.item-card {
 }
 .btn-login-cta svg {
   flex-shrink: 0;
+}
+
+.back-floating {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 100;   /* raised above hero overlay */
+
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 10px 16px;
+
+    background: rgba(15,15,20,0.7);
+    backdrop-filter: blur(10px);
+
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 999px;
+
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+
+    transition: .2s;
+}
+
+.back-floating:hover {
+    transform: translateX(-4px);
 }

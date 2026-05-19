@@ -81,7 +81,7 @@ class AuthController extends Controller
                 'email' => $matched['email'],
                 'name' => $matched['name'],
                 'role' => $matched['role'],
-                'pfp' => 'pfp3',
+                'pfp' => 'pfp6',
             ]);
         }
 
@@ -114,14 +114,24 @@ class AuthController extends Controller
         ]);
 
         $uid = $request->input('uid');
+
+        // Create/update user di Firebase RTDB
         if (!FirebaseHelper::adakah("users/{$uid}")) {
             FirebaseHelper::buatParent("users/{$uid}", [
+                'uid' => $uid,
                 'email' => $request->input('email'),
                 'name' => $request->input('name'),
                 'role' => 'user',
-                'pfp' => 'pfp3',
+                'pfp' => 'pfp6', // default avatar
+            ]);
+        } else {
+            // Update existing user
+            FirebaseHelper::perbarui("users/{$uid}", [
+                'name' => $request->input('name'),
+                'email' => $request->input('email'),
             ]);
         }
+
         return response()->json(['success' => true]);
     }
 }

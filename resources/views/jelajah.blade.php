@@ -53,18 +53,29 @@
 
                                 <span class="item-name">{{ $name }}</span>
                             </a>
-                            
+
                 @endforeach
                     </div>
 
                     {{-- ── PAGINATION ── --}}
                     <div class="pagination">
-                        @if($page > 1)
-                            <a href="?{{ http_build_query(array_merge(request()->query(), ['page' => $page - 1])) }}">← Prev</a>
-                        @endif
-                        @if($page < ceil($total / $perPage))
-                            <a href="?{{ http_build_query(array_merge(request()->query(), ['page' => $page + 1])) }}">Next →</a>
-                        @endif
+                        <div class="pagination-left">
+                            @if($page > 1)
+                                <a class="page-button"
+                                    href="?{{ http_build_query(array_merge(request()->query(), ['page' => $page - 1])) }}">
+                                    ← Prev
+                                </a>
+                            @endif
+                        </div>
+
+                        <div class="pagination-right">
+                            @if($page < ceil($total / $perPage))
+                                <a class="page-button"
+                                    href="?{{ http_build_query(array_merge(request()->query(), ['page' => $page + 1])) }}">
+                                    Next →
+                                </a>
+                            @endif
+                        </div>
                     </div>
 
         </section>
