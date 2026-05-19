@@ -100,6 +100,47 @@
     z-index: 1;
   }
 
+  .navbar-links {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    position: relative;
+    z-index: 1;
+    margin-right: auto;
+    margin-left: 40px;
+  }
+
+  .nav-link {
+    font-family: 'Freckle Face', cursive;
+    font-size: 1.15rem;
+    color: var(--muted, #9b8fc2);
+    text-decoration: none;
+    letter-spacing: 1.5px;
+    transition: color 0.25s, text-shadow 0.25s;
+    position: relative;
+  }
+
+  .nav-link:hover, .nav-link.active {
+    color: #fff;
+    text-shadow: 0 0 10px rgba(167, 139, 250, 0.8);
+  }
+
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0%;
+    height: 2px;
+    background: linear-gradient(90deg, #7c3aed, #f472b6);
+    transition: width 0.3s ease;
+    border-radius: 2px;
+  }
+
+  .nav-link:hover::after, .nav-link.active::after {
+    width: 100%;
+  }
+
   .nav-icon-chat img,
   .nav-icon-profile img {
     width: 32px;
@@ -317,6 +358,12 @@
     </div>
     <span class="brand-name">POKELU</span>
   </a>
+
+  <div class="navbar-links">
+    <a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}">Home</a>
+    <a href="{{ route('jelajah') }}" class="nav-link {{ request()->routeIs('jelajah') ? 'active' : '' }}">Explore</a>
+    <a href="{{ route('forum.index') }}" class="nav-link {{ request()->routeIs('forum.*') ? 'active' : '' }}">Forum</a>
+  </div>
 
   <div class="navbar-right">
 

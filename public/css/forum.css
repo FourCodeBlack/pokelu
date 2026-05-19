@@ -1,0 +1,398 @@
+/* resources/css/forum.css or public/css/forum.css */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&display=swap');
+
+body {
+    background-color: #1b0b2e;
+    color: #ffffff;
+    font-family: 'Fredoka', sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6, .thread-title, .brand-name {
+    font-family: 'Freckle Face', cursive;
+    color: #ffffff;
+    text-shadow:
+        -2px -2px 0 black,
+         2px -2px 0 black,
+        -2px  2px 0 black,
+         2px  2px 0 black,
+        -2px  0   0 black,
+         2px  0   0 black,
+         0   -2px 0 black,
+         0    2px 0 black;
+}
+
+.forum-header-section {
+    background: linear-gradient(to right, #050014, #24103a);
+    padding: 3rem 1rem;
+    text-align: center;
+    border-bottom: 2px solid #7c4dff;
+}
+
+.forum-header-section h1 {
+    font-size: 3rem;
+    font-weight: normal;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    letter-spacing: 2px;
+}
+
+.pokeball-icon {
+    width: 40px;
+    height: 40px;
+}
+
+.forum-container {
+    max-width: 1050px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+/* Index Items */
+.thread-item {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.thread-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+    border-color: rgba(124, 77, 255, 0.5);
+}
+
+.thread-thumbnail {
+    width: 240px;
+    flex-shrink: 0;
+    position: relative;
+    background: #000;
+}
+
+.thread-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    min-height: 210px;
+}
+
+.thread-content {
+    padding: 1.5rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.thread-title {
+    font-size: 1.8rem;
+    font-weight: normal;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    letter-spacing: 1px;
+}
+
+.thread-desc {
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+    flex-grow: 1;
+}
+
+.thread-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.thread-author {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.author-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.author-name {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.thread-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.btn-enter {
+    background-color: #ec2dc2;
+    color: white;
+    text-decoration: none;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: background 0.3s;
+}
+
+.btn-enter:hover {
+    background-color: #d01ba8;
+}
+
+.like-dislike {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #7c4dff;
+    font-weight: bold;
+}
+.like-dislike form {
+    margin: 0;
+}
+.like-dislike button {
+    background: none;
+    border: none;
+    color: #7c4dff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 1rem;
+    padding: 5px;
+    transition: transform 0.2s;
+}
+.like-dislike button:hover {
+    transform: scale(1.1);
+}
+.like-dislike button.active {
+    color: #ec2dc2;
+}
+
+/* Floating Action Button */
+.fab {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    background-color: #7c4dff;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    text-decoration: none;
+    box-shadow: 0 4px 15px rgba(124, 77, 255, 0.4);
+    transition: transform 0.3s, background 0.3s;
+    z-index: 100;
+}
+
+.fab:hover {
+    transform: scale(1.1);
+    background-color: #651fff;
+}
+
+/* Detail Page */
+.detail-hero {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2rem;
+    border-radius: 16px;
+}
+
+.detail-thumbnail {
+    width: 300px;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.detail-body {
+    flex-grow: 1;
+}
+
+.detail-body h1 {
+    margin-top: 0;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    letter-spacing: 1px;
+    font-weight: normal;
+}
+
+.detail-content {
+    line-height: 1.6;
+    color: rgba(255,255,255,0.8);
+    font-size: 1.1rem;
+    white-space: pre-wrap;
+    margin-bottom: 1.5rem;
+}
+
+.detail-author-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.detail-author-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.detail-author-info img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+}
+
+.detail-author-text strong {
+    display: block;
+    font-size: 1.1rem;
+}
+
+.detail-author-text span {
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.6);
+}
+
+/* Comments */
+.comments-section {
+    margin-top: 3rem;
+}
+
+.comments-section h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #ec2dc2;
+    display: inline-block;
+    padding-bottom: 5px;
+}
+
+.comment-item {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 15px;
+}
+
+.comment-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.comment-content {
+    flex-grow: 1;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.comment-author {
+    font-weight: bold;
+    color: #ec2dc2;
+}
+
+.comment-time {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.5);
+}
+
+.comment-text {
+    line-height: 1.5;
+    color: rgba(255,255,255,0.9);
+}
+
+/* Form */
+.forum-form {
+    background: rgba(255,255,255,0.05);
+    padding: 2rem;
+    border-radius: 16px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    font-family: 'Fredoka', sans-serif;
+    color: #ffffff;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: #ffffff;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #ec2dc2;
+}
+
+.btn-submit {
+    background-color: #7c4dff;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn-submit:hover {
+    background-color: #651fff;
+}
+
+@media (max-width: 768px) {
+    .thread-item {
+        flex-direction: column;
+    }
+    .thread-thumbnail {
+        width: 100%;
+    }
+    .thread-thumbnail img {
+        height: 200px;
+    }
+    .detail-hero {
+        flex-direction: column;
+    }
+    .detail-thumbnail {
+        width: 100%;
+    }
+}
