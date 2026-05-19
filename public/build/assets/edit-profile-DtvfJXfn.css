@@ -1,0 +1,1 @@
+input[type=radio]:checked+img{border:3px solid #6B6DFF;transform:scale(1.05)}.back-btn{display:inline-flex;align-items:center;gap:6px;margin-bottom:20px;color:#fff;text-decoration:none;font-size:18px;font-weight:600;transition:.2s}.back-btn:hover{opacity:.7;transform:translate(-3px)}

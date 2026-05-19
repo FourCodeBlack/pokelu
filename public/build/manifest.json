@@ -1,0 +1,89 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-BEZPD_sm.css",
+    "src": "resources/css/app.css",
+    "isEntry": true,
+    "name": "app",
+    "names": [
+      "app.css"
+    ]
+  },
+  "resources/css/card-detail.css": {
+    "file": "assets/card-detail-C7jfEibN.css",
+    "src": "resources/css/card-detail.css",
+    "isEntry": true,
+    "name": "card-detail",
+    "names": [
+      "card-detail.css"
+    ]
+  },
+  "resources/css/edit-profile.css": {
+    "file": "assets/edit-profile-DtvfJXfn.css",
+    "src": "resources/css/edit-profile.css",
+    "isEntry": true,
+    "name": "edit-profile",
+    "names": [
+      "edit-profile.css"
+    ]
+  },
+  "resources/css/explore.css": {
+    "file": "assets/explore-CUW8YyRG.css",
+    "src": "resources/css/explore.css",
+    "isEntry": true,
+    "name": "explore",
+    "names": [
+      "explore.css"
+    ]
+  },
+  "resources/css/home-page.css": {
+    "file": "assets/home-page-MYxNxvS0.css",
+    "src": "resources/css/home-page.css",
+    "isEntry": true,
+    "name": "home-page",
+    "names": [
+      "home-page.css"
+    ]
+  },
+  "resources/css/home.css": {
+    "file": "assets/home-DKUJTu5f.css",
+    "src": "resources/css/home.css",
+    "isEntry": true,
+    "name": "home",
+    "names": [
+      "home.css"
+    ]
+  },
+  "resources/css/profile.css": {
+    "file": "assets/profile-XpO3PNBr.css",
+    "src": "resources/css/profile.css",
+    "isEntry": true,
+    "name": "profile",
+    "names": [
+      "profile.css"
+    ]
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-DJIYZTfl.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true,
+    "css": [
+      "assets/app-DBkz-poX.css"
+    ]
+  },
+  "resources/js/explore-search.js": {
+    "file": "assets/explore-search-Dq_TohYE.js",
+    "name": "explore-search",
+    "src": "resources/js/explore-search.js",
+    "isEntry": true
+  },
+  "resources/views/layout/navbar_jelajah.css": {
+    "file": "assets/navbar_jelajah-B5-6pC9j.css",
+    "src": "resources/views/layout/navbar_jelajah.css",
+    "isEntry": true,
+    "name": "navbar_jelajah",
+    "names": [
+      "navbar_jelajah.css"
+    ]
+  }
+}
