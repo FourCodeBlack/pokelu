@@ -732,6 +732,48 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-s
 
 .chat-input-row .form-input { margin-bottom: 0; }
 
+.delete-mini-btn {
+    background: #ff3b6b;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.delete-mini-btn:hover {
+    filter: brightness(1.1);
+}
+
+.comment-item form,
+.offer-item form {
+    margin-top: 8px;
+}
+
+.alert-success {
+    background: rgba(46, 204, 113, 0.15);
+    border: 1px solid #2ecc71;
+    color: #2ecc71;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    z-index: 100;
+    position: relative;
+}
+
+.alert-error {
+    background: rgba(255, 59, 107, 0.15);
+    border: 1px solid #ff3b6b;
+    color: #ff6f91;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    z-index: 100;
+    position: relative;
+}
+
 .chat-input-row .btn-submit { margin-top: 0; padding: 10px 16px; }
 
 /* ── RESPONSIVE ── */

@@ -15,6 +15,19 @@
       <a href="{{ url()->previous() }}" class="back-floating">
         ← Back
       </a>
+      
+      @if(session('success'))
+          <div class="alert-success">
+              {{ session('success') }}
+          </div>
+      @endif
+
+      @if(session('error'))
+          <div class="alert-error">
+              {{ session('error') }}
+          </div>
+      @endif
+
       <div class="hero-bg" style="--img:url('{{ asset('images/Pokelubg.webp') }}')"></div>
 
       <div class="hero-inner">
@@ -75,6 +88,7 @@
               ? FirebaseHelper::adakah("users/$uid/wishlist/" . $card['id'])
               : false;
             $data = FirebaseHelper::baca("users/$uid");
+            $isAdmin = ($data['role'] ?? 'user') === 'admin';
           @endphp
           <form action="{{ route('wishlist.add') }}" method="post" x-data="{
                                                               wished: {{ $isWishlisted ? 'true' : 'false' }},
@@ -215,7 +229,18 @@
                       x-text="offer.soldCount ? offer.soldCount + ' cards sold' : 'New seller'"></span>
                   </div>
                 </div>
-                <div class="offer-price" x-text="'$' + parseFloat(offer.price).toFixed(2)"></div>
+                <div class="offer-price">
+                  <span x-text="'$' + parseFloat(offer.price).toFixed(2)"></span>
+                  <template x-if="isAdmin || offer.uid === currentUser?.uid">
+                    <form method="POST" :action="`/cards/${cardId}/offers/${offer.id}`" onsubmit="return confirm('Yakin ingin menghapus penawaran ini? Semua reply di dalamnya juga akan terhapus.');" style="display:inline-block; margin-left:8px;">
+                      @csrf
+                      @method('DELETE')
+                      <button type="submit" class="delete-mini-btn">
+                          Hapus
+                      </button>
+                    </form>
+                  </template>
+                </div>
               </div>
 
               <div class="offer-body">
@@ -234,10 +259,15 @@
                   <div class="thread-item" :class="{ 'thread-mine': reply.uid === currentUser?.uid }">
                     <img :src="'/images/avatar/' + (reply.resolvedPfp || reply.photoURL || 'default') + '.png'"
                       class="thread-avatar">
-                    <div class="thread-bubble">
+                    <div class="thread-bubble" style="flex:1;">
                       <span class="thread-name" x-text="reply.displayName || 'Anonymous'"></span>
                       <p class="thread-text text-light" x-text="reply.text"></p>
                     </div>
+                    @if($isAdmin ?? false)
+                      <button class="admin-delete-btn" @click="adminDeleteReply(offer.id, reply.id)" title="Hapus Reply (Admin)" style="padding:4px 8px; font-size:12px;">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    @endif
                   </div>
                 </template>
 
@@ -319,9 +349,20 @@
                   class="comment-avatar">
                 {{-- BREAKPOINT --}}
                 <div class="comment-body">
-                  <div class="comment-header">
-                    <span class="comment-name" x-text="c.displayName || 'Anonymous'"></span>
-                    <span class="comment-time" x-text="timeAgo(c.createdAt)"></span>
+                  <div class="comment-header" style="display:flex; justify-content:space-between; width:100%;">
+                    <div>
+                      <span class="comment-name" x-text="c.displayName || 'Anonymous'"></span>
+                      <span class="comment-time" x-text="timeAgo(c.createdAt)"></span>
+                    </div>
+                    <template x-if="isAdmin || c.uid === currentUser?.uid">
+                      <form method="POST" :action="`/cards/${cardId}/comments/${c.id}`" onsubmit="return confirm('Yakin ingin menghapus komentar ini?');" style="display:inline-block;">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="delete-mini-btn">
+                            Hapus
+                        </button>
+                      </form>
+                    </template>
                   </div>
                   <p class="comment-text" x-text="c.text"></p>
                 </div>
@@ -398,6 +439,7 @@
         cardId,
         currentUser: null,
         currentUserPfp: 'default',
+        isAdmin: {{ ($isAdmin ?? false) ? 'true' : 'false' }},
         pfpCache: {},
         showEmailLogin: false,
         emailInput: '',
@@ -598,6 +640,39 @@
           if (s < 3600) return Math.floor(s / 60) + 'm lalu';
           if (s < 86400) return Math.floor(s / 3600) + 'j lalu';
           return Math.floor(s / 86400) + ' hari lalu';
+        },
+
+        async adminDeleteOffer(offerId) {
+          if (!confirm('Hapus offer ini sebagai admin?')) return;
+          try {
+            const res = await fetch(`/admin/cards/${this.cardId}/offers/${offerId}`, {
+              method: 'DELETE',
+              headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+          } catch(e) { console.error(e); }
+        },
+
+        async adminDeleteReply(offerId, replyId) {
+          if (!confirm('Hapus reply ini sebagai admin?')) return;
+          try {
+            const res = await fetch(`/admin/cards/${this.cardId}/offers/${offerId}/replies/${replyId}`, {
+              method: 'DELETE',
+              headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+          } catch(e) { console.error(e); }
+        },
+
+        async adminDeleteComment(commentId) {
+          if (!confirm('Hapus komentar ini sebagai admin?')) return;
+          try {
+            const res = await fetch(`/admin/cards/${this.cardId}/comments/${commentId}`, {
+              method: 'DELETE',
+              headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+          } catch(e) { console.error(e); }
         }
       }));
     });

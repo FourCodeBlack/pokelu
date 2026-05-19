@@ -109,4 +109,70 @@ public function search(Request $request)
         ], 500);
     }
 }
+
+private function currentUid()
+{
+    return session('user.uid');
+}
+
+private function isAdmin($uid)
+{
+    if (!$uid) return false;
+    $user = \App\Models\FirebaseHelper::baca("users/{$uid}");
+    return ($user['role'] ?? 'user') === 'admin';
+}
+
+public function destroyComment($cardId, $commentId)
+{
+    $uid = $this->currentUid();
+    if (!$uid) {
+        return request()->ajax() ? response()->json(['error' => 'Unauthorized'], 401) : redirect()->back()->with('error', 'Login dulu untuk menghapus komentar.');
+    }
+
+    $comment = \App\Models\FirebaseHelper::baca("cards/{$cardId}/comments/{$commentId}");
+    if (!$comment) {
+        return request()->ajax() ? response()->json(['error' => 'Not found'], 404) : abort(404, 'Komentar tidak ditemukan.');
+    }
+
+    $isOwner = ($comment['uid'] ?? null) === $uid;
+    $isAdmin = $this->isAdmin($uid);
+
+    if (!$isOwner && !$isAdmin) {
+        return request()->ajax() ? response()->json(['error' => 'Forbidden'], 403) : abort(403, 'Kamu tidak punya akses untuk menghapus komentar ini.');
+    }
+
+    \App\Models\FirebaseHelper::hapus("cards/{$cardId}/comments/{$commentId}");
+
+    if (request()->wantsJson() || request()->ajax()) {
+        return response()->json(['success' => true]);
+    }
+    return redirect()->back()->with('success', 'Komentar berhasil dihapus.');
+}
+
+public function destroyOffer($cardId, $offerId)
+{
+    $uid = $this->currentUid();
+    if (!$uid) {
+        return request()->ajax() ? response()->json(['error' => 'Unauthorized'], 401) : redirect()->back()->with('error', 'Login dulu untuk menghapus penawaran.');
+    }
+
+    $offer = \App\Models\FirebaseHelper::baca("cards/{$cardId}/offers/{$offerId}");
+    if (!$offer) {
+        return request()->ajax() ? response()->json(['error' => 'Not found'], 404) : abort(404, 'Penawaran tidak ditemukan.');
+    }
+
+    $isOwner = ($offer['uid'] ?? null) === $uid;
+    $isAdmin = $this->isAdmin($uid);
+
+    if (!$isOwner && !$isAdmin) {
+        return request()->ajax() ? response()->json(['error' => 'Forbidden'], 403) : abort(403, 'Kamu tidak punya akses untuk menghapus penawaran ini.');
+    }
+
+    \App\Models\FirebaseHelper::hapus("cards/{$cardId}/offers/{$offerId}");
+
+    if (request()->wantsJson() || request()->ajax()) {
+        return response()->json(['success' => true]);
+    }
+    return redirect()->back()->with('success', 'Penawaran berhasil dihapus.');
+}
 }

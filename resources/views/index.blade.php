@@ -15,7 +15,7 @@
         <div class="hero-content">
             <h1>CARI KARTUMU SEKARANG!</h1>
             <p>Data TCG Pokemon Terlengkap</p>
-            <a href="explore" class="btn-jelajahi">Jelajahi ></a>
+            <a href="{{ route('home') }}" class="btn-jelajahi">Jelajahi ></a>
         </div>
     </div>
 @endsection

@@ -9,6 +9,7 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/css/home.css',
+                'resources/css/home-page.css',
                 'resources/css/profile.css',
                 'resources/css/edit-profile.css',
                 'resources/views/layout/navbar_jelajah.css',
