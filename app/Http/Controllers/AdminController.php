@@ -22,12 +22,22 @@ class AdminController extends Controller
     // ── Hapus Komentar Forum ──
     public function deleteForumComment($threadId, $commentId)
     {
-        $comment = FirebaseHelper::baca("forums/threads/{$threadId}/comments/{$commentId}");
+        $comment = FirebaseHelper::baca("forums/{$threadId}/messages/{$commentId}");
+        $isNewPath = true;
+        if (!$comment) {
+            $comment = FirebaseHelper::baca("forums/threads/{$threadId}/comments/{$commentId}");
+            $isNewPath = false;
+        }
+
         if (!$comment) {
             return response()->json(['error' => 'Komentar tidak ditemukan.'], 404);
         }
 
-        FirebaseHelper::hapus("forums/threads/{$threadId}/comments/{$commentId}");
+        if ($isNewPath) {
+            FirebaseHelper::hapus("forums/{$threadId}/messages/{$commentId}");
+        } else {
+            FirebaseHelper::hapus("forums/threads/{$threadId}/comments/{$commentId}");
+        }
 
         if (request()->wantsJson() || request()->ajax()) {
             return response()->json(['success' => true]);

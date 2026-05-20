@@ -35,11 +35,11 @@
                 <div class="thread-footer">
                     <div class="thread-author">
                         @php
-                            $pfp = $thread['photoURL'] ?? 'pfp6';
-                            $avatarSrc = str_starts_with($pfp, 'http') ? $pfp : asset('images/avatar/' . $pfp . '.png');
+                            $pfp = $thread['resolvedPfp'] ?? 'default';
+                            $avatarSrc = asset('images/avatar/' . $pfp . '.png');
                         @endphp
-                        <img src="{{ $avatarSrc }}" alt="Avatar" class="author-avatar" onerror="this.src='{{ asset('images/avatar/pfp6.png') }}'">
-                        <span class="author-name">Dimulai oleh: {{ '@' . ($thread['username'] ?? 'user') }}</span>
+                        <img src="{{ $avatarSrc }}" alt="Avatar" class="author-avatar" onerror="this.src='{{ asset('images/avatar/default.png') }}'">
+                        <span class="author-name">Dimulai oleh: {{ '@' . ($thread['resolvedUsername'] ?? 'user') }}</span>
                     </div>
 
                     <div class="thread-actions">

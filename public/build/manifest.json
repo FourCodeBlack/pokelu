@@ -17,6 +17,15 @@
       "card-detail.css"
     ]
   },
+  "resources/css/chat.css": {
+    "file": "assets/chat-DMoN6nly.css",
+    "src": "resources/css/chat.css",
+    "isEntry": true,
+    "name": "chat",
+    "names": [
+      "chat.css"
+    ]
+  },
   "resources/css/edit-profile.css": {
     "file": "assets/edit-profile-DtvfJXfn.css",
     "src": "resources/css/edit-profile.css",
@@ -36,7 +45,7 @@
     ]
   },
   "resources/css/home-page.css": {
-    "file": "assets/home-page-MYxNxvS0.css",
+    "file": "assets/home-page-DpEONJQL.css",
     "src": "resources/css/home-page.css",
     "isEntry": true,
     "name": "home-page",

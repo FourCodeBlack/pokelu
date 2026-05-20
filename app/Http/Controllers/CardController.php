@@ -36,8 +36,82 @@ class CardController extends Controller
             'hp'          => $raw['hp']                ?? null,
             'logo'        => $raw['set']['images']['logo'] ?? null,
         ];
+        $currentUid = session('user.uid');
+        $isAdmin = false;
+        if ($currentUid) {
+            $user = \App\Models\FirebaseHelper::baca("users/{$currentUid}");
+            $isAdmin = ($user['role'] ?? 'user') === 'admin';
+        }
 
-        return view('card-detail', compact('card'));
+        // Server-side lookup untuk offers
+        $fbCard = \App\Models\FirebaseHelper::baca("cards/{$id}") ?? [];
+        $rawOffers = $fbCard['offers'] ?? [];
+        $offers = [];
+
+        foreach ($rawOffers as $offerId => $offer) {
+            $uid = $offer['uid'] ?? null;
+            $seller = [];
+            if ($uid) {
+                $seller = \App\Models\FirebaseHelper::baca("users/{$uid}") ?? [];
+            }
+
+            $name = $seller['name'] ?? $seller['username'] ?? 'User';
+            $sellerHandle = '@' . strtolower(str_replace(' ', '', $name));
+
+            $offers[] = [
+                'offerId'   => $offerId,
+                'cardId'    => $id,
+                'uid'       => $uid,
+                'price'     => $offer['price'] ?? null,
+                'condition' => $offer['condition'] ?? null,
+                'contact'   => $offer['contact'] ?? null,
+                'message'   => $offer['desc'] ?? $offer['message'] ?? null, // handle both desc and message
+                'createdAt' => $offer['createdAt'] ?? 0,
+                'replies'   => [],
+                'seller'    => [
+                    'username' => $name,
+                    'handle'   => $sellerHandle,
+                    'pfp'      => $seller['pfp'] ?? 'default',
+                    'role'     => $seller['role'] ?? 'user',
+                ],
+            ];
+        }
+
+        usort($offers, function ($a, $b) {
+            return ($b['createdAt'] ?? 0) <=> ($a['createdAt'] ?? 0);
+        });
+
+        // Server-side lookup untuk comments
+        $rawComments = $fbCard['comments'] ?? [];
+        $comments = [];
+        foreach ($rawComments as $commentId => $comment) {
+            $uid = $comment['uid'] ?? null;
+            $commenter = [];
+            if ($uid) {
+                $commenter = \App\Models\FirebaseHelper::baca("users/{$uid}") ?? [];
+            }
+            $cName = $commenter['name'] ?? $commenter['username'] ?? 'User';
+            $commenterHandle = '@' . strtolower(str_replace(' ', '', $cName));
+
+            $comments[] = [
+                'id'        => $commentId,
+                'uid'       => $uid,
+                'text'      => $comment['text'] ?? null,
+                'createdAt' => $comment['createdAt'] ?? 0,
+                'seller'    => [
+                    'username' => $cName,
+                    'handle'   => $commenterHandle,
+                    'pfp'      => $commenter['pfp'] ?? 'default',
+                    'role'     => $commenter['role'] ?? 'user',
+                ],
+            ];
+        }
+
+        usort($comments, function ($a, $b) {
+            return ($b['createdAt'] ?? 0) <=> ($a['createdAt'] ?? 0);
+        });
+
+        return view('card-detail', compact('card', 'isAdmin', 'offers', 'comments'));
     }
 
     // Fallback ke TCGdex (untuk kartu dari halaman explore)

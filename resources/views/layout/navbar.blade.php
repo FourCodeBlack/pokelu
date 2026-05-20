@@ -363,6 +363,7 @@
     <a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}">Home</a>
     <a href="{{ route('jelajah') }}" class="nav-link {{ request()->routeIs('jelajah') ? 'active' : '' }}">Explore</a>
     <a href="{{ route('forum.index') }}" class="nav-link {{ request()->routeIs('forum.*') ? 'active' : '' }}">Forum</a>
+    <a href="{{ route('offers.index') }}" class="nav-link {{ request()->routeIs('offers.*') ? 'active' : '' }}">Offers</a>
   </div>
 
   <div class="navbar-right">

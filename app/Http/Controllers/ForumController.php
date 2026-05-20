@@ -14,6 +14,7 @@ class ForumController extends Controller
         $threadsData = FirebaseHelper::baca('forums/threads') ?? [];
         $threads = [];
 
+        $userCache = [];
         foreach ($threadsData as $id => $data) {
             $data['id'] = $id;
             
@@ -22,6 +23,16 @@ class ForumController extends Controller
             $dislikes = isset($data['dislikes']) ? count($data['dislikes']) : 0;
             $data['likes_count'] = $likes;
             $data['dislikes_count'] = $dislikes;
+
+            // Resolve author profile
+            $uid = $data['uid'] ?? null;
+            if ($uid && !isset($userCache[$uid])) {
+                $userCache[$uid] = FirebaseHelper::baca("users/{$uid}") ?? [];
+            }
+            $user = $uid ? ($userCache[$uid] ?? []) : [];
+            
+            $data['resolvedPfp'] = $user['pfp'] ?? $data['photoURL'] ?? 'default';
+            $data['resolvedUsername'] = $user['handle'] ?? $data['username'] ?? 'user';
 
             $threads[] = $data;
         }
@@ -47,7 +58,9 @@ class ForumController extends Controller
 
         $likes    = is_array($thread['likes']    ?? null) ? $thread['likes']    : [];
         $dislikes = is_array($thread['dislikes'] ?? null) ? $thread['dislikes'] : [];
-        $rawComments = is_array($thread['comments'] ?? null) ? $thread['comments'] : [];
+        $rawCommentsOld = is_array($thread['comments'] ?? null) ? $thread['comments'] : [];
+        $rawCommentsNew = FirebaseHelper::baca("forums/{$threadId}/messages") ?? [];
+        $rawComments = (array)$rawCommentsOld + (array)$rawCommentsNew;
 
         $likeCount    = count($likes);
         $dislikeCount = count($dislikes);
@@ -60,6 +73,7 @@ class ForumController extends Controller
 
         // Build messages with avatar + formatted time
         $messages = [];
+        $userCache = [];
         foreach ($rawComments as $cid => $cdata) {
             if (empty($cdata)) continue;
 
@@ -77,13 +91,25 @@ class ForumController extends Controller
                 }
             }
 
-            $pfp = $cdata['photoURL'] ?? 'pfp6';
-            $avatar = str_starts_with($pfp, 'http') ? $pfp : '/images/avatar/' . $pfp . '.png';
+            // Lookup real user profile from Firebase
+            $msgUid = $cdata['uid'] ?? null;
+            if ($msgUid && !isset($userCache[$msgUid])) {
+                $userCache[$msgUid] = FirebaseHelper::baca("users/{$msgUid}") ?? [];
+            }
+            $msgUser = $msgUid ? ($userCache[$msgUid] ?? []) : [];
+
+            // Resolve fields: Priority live profile -> fallback to old cdata -> default
+            $pfpCode = $msgUser['pfp'] ?? $cdata['pfp'] ?? 'default';
+            $displayName = $msgUser['username'] ?? $cdata['displayName'] ?? $cdata['username'] ?? 'User';
+            $username = $msgUser['handle'] ?? $cdata['username'] ?? 'user';
+
+            $avatar = '/images/avatar/' . $pfpCode . '.png';
             $messages[] = [
                 'id'               => $cid,
-                'uid'              => $cdata['uid'] ?? '',
-                'displayName'      => $cdata['displayName'] ?? 'User',
-                'username'         => $cdata['username'] ?? 'user',
+                'uid'              => $msgUid ?? '',
+                'displayName'      => $displayName,
+                'username'         => $username,
+                'pfp'              => $pfpCode,
                 'avatar'           => $avatar,
                 'text'             => $cdata['text'] ?? '',
                 'createdAt'        => $cdata['createdAt'] ?? 0,
@@ -178,9 +204,6 @@ class ForumController extends Controller
             'createdAt' => time() * 1000,
             'updatedAt' => time() * 1000,
             'uid' => $uid,
-            'displayName' => $user['name'] ?? 'User',
-            'username' => strtolower(str_replace(' ', '', $user['name'] ?? 'user')),
-            'photoURL' => $user['pfp'] ?? 'pfp6',
         ];
 
         // Random ID for thread
@@ -285,13 +308,23 @@ class ForumController extends Controller
         }
 
         $uid = session('user.uid');
-        $comment = FirebaseHelper::baca("forums/threads/{$threadId}/comments/{$commentId}");
+        
+        $comment = FirebaseHelper::baca("forums/{$threadId}/messages/{$commentId}");
+        $isNewPath = true;
+        if (!$comment) {
+            $comment = FirebaseHelper::baca("forums/threads/{$threadId}/comments/{$commentId}");
+            $isNewPath = false;
+        }
 
         if (!$comment || ($comment['uid'] ?? '') !== $uid) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
-        FirebaseHelper::hapus("forums/threads/{$threadId}/comments/{$commentId}");
+        if ($isNewPath) {
+            FirebaseHelper::hapus("forums/{$threadId}/messages/{$commentId}");
+        } else {
+            FirebaseHelper::hapus("forums/threads/{$threadId}/comments/{$commentId}");
+        }
 
         if (request()->wantsJson() || request()->ajax()) {
             return response()->json(['success' => true]);
@@ -309,16 +342,29 @@ class ForumController extends Controller
         $request->validate(['text' => 'required|string|max:1000']);
 
         $uid = session('user.uid');
-        $comment = FirebaseHelper::baca("forums/threads/{$threadId}/comments/{$commentId}");
+        
+        $comment = FirebaseHelper::baca("forums/{$threadId}/messages/{$commentId}");
+        $isNewPath = true;
+        if (!$comment) {
+            $comment = FirebaseHelper::baca("forums/threads/{$threadId}/comments/{$commentId}");
+            $isNewPath = false;
+        }
 
         if (!$comment || ($comment['uid'] ?? '') !== $uid) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
-        FirebaseHelper::buatParent("forums/threads/{$threadId}/comments/{$commentId}", array_merge(
-            (array) $comment,
-            ['text' => $request->text, 'updatedAt' => time() * 1000]
-        ));
+        if ($isNewPath) {
+            FirebaseHelper::buatParent("forums/{$threadId}/messages/{$commentId}", array_merge(
+                (array) $comment,
+                ['text' => $request->text, 'updatedAt' => time() * 1000]
+            ));
+        } else {
+            FirebaseHelper::buatParent("forums/threads/{$threadId}/comments/{$commentId}", array_merge(
+                (array) $comment,
+                ['text' => $request->text, 'updatedAt' => time() * 1000]
+            ));
+        }
 
         if (request()->wantsJson() || request()->ajax()) {
             return response()->json(['success' => true, 'text' => $request->text]);
@@ -337,7 +383,19 @@ class ForumController extends Controller
 
         $uid   = session('user.uid');
         $emoji = $request->emoji;
-        $path  = "forums/threads/{$threadId}/comments/{$commentId}/reactions/{$emoji}/{$uid}";
+        
+        $comment = FirebaseHelper::baca("forums/{$threadId}/messages/{$commentId}");
+        $isNewPath = true;
+        if (!$comment) {
+            $comment = FirebaseHelper::baca("forums/threads/{$threadId}/comments/{$commentId}");
+            $isNewPath = false;
+        }
+
+        if ($isNewPath) {
+            $path  = "forums/{$threadId}/messages/{$commentId}/reactions/{$emoji}/{$uid}";
+        } else {
+            $path  = "forums/threads/{$threadId}/comments/{$commentId}/reactions/{$emoji}/{$uid}";
+        }
 
         $exists = FirebaseHelper::adakah($path);
         if ($exists) {
@@ -348,8 +406,11 @@ class ForumController extends Controller
             $reacted = true;
         }
 
-        // Return updated count
-        $reactions = FirebaseHelper::baca("forums/threads/{$threadId}/comments/{$commentId}/reactions/{$emoji}") ?? [];
+        if ($isNewPath) {
+            $reactions = FirebaseHelper::baca("forums/{$threadId}/messages/{$commentId}/reactions/{$emoji}") ?? [];
+        } else {
+            $reactions = FirebaseHelper::baca("forums/threads/{$threadId}/comments/{$commentId}/reactions/{$emoji}") ?? [];
+        }
         $count = is_array($reactions) ? count($reactions) : 0;
 
         return response()->json(['success' => true, 'reacted' => $reacted, 'count' => $count]);

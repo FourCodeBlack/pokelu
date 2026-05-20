@@ -127,6 +127,7 @@ return [
                  *
                  * You can define one of those domains as the default for new Dynamic
                  * Links created within your project.
+                 * 
                  *
                  * The value must be a valid domain, for example,
                  * https://example.page.link

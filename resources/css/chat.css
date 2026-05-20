@@ -324,7 +324,7 @@
       position: absolute;
       inset: 0;
       z-index: 0;
-      background: url('{{ asset("images/background_chat.webp") }}') center / cover no-repeat;
+      background: url('/images/background_chat.webp') center / cover no-repeat;
     }
 
     .chat-bg::after {
@@ -581,12 +581,18 @@
     }
 
     .chat-input-container {
-      background: var(--input-bg);
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
-      backdrop-filter: blur(12px);
-      transition: border-color .2s, box-shadow .2s;
-      overflow: hidden;
+    background: var(--input-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    backdrop-filter: blur(12px);
+    transition: border-color .2s, box-shadow .2s;
+    overflow: hidden;
+
+    width: 100%;
+    }
+
+    .chat-input-wrap {
+    width: 100%;
     }
 
     .chat-input-container:focus-within {
@@ -658,6 +664,68 @@
       border-bottom: 1px solid rgba(0, 210, 255, 0.15);
     }
 
+    .file-preview-wrapper{
+      display:none;
+      padding:10px 14px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
+    }
+
+    .file-preview-wrapper.active{
+      display:block;
+    }
+
+    .file-preview-content{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .file-preview-image{
+      width:54px;
+      height:54px;
+      border-radius:10px;
+      overflow:hidden;
+      flex-shrink:0;
+      border:1px solid rgba(255,255,255,.1);
+    }
+
+    .file-preview-image img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    .file-preview-info{
+      flex:1;
+      min-width:0;
+    }
+
+    .file-preview-name{
+      font-size:.78rem;
+      color:var(--text);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .file-preview-size{
+      font-size:.68rem;
+      color:var(--muted);
+      margin-top:3px;
+    }
+
+    .file-preview-close{
+      width:28px;
+      height:28px;
+      border:none;
+      border-radius:50%;
+      cursor:pointer;
+      background:rgba(255,255,255,.08);
+      color:#fff;
+      flex-shrink:0;
+    }
+
     .offer-preview-wrapper.active {
       display: block;
     }
@@ -705,11 +773,13 @@
 
     /* Chat Controls - Discord style horizontal layout */
     .chat-controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    width: 100%;
     }
+
 
     /* Attach button - smaller, icon only */
     .btn-attach {
@@ -776,19 +846,27 @@
 
     /* Textarea */
     .chat-input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      padding: 6px 0;
-      color: var(--text);
-      font-family: 'Fragment Mono', monospace;
-      font-size: .85rem;
-      outline: none;
-      resize: none;
-      min-height: 20px;
-      max-height: 120px;
-      overflow-y: auto;
-      line-height: 1.5;
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+
+    background: transparent;
+    border: none;
+
+    padding: 10px 12px;
+
+    color: var(--text);
+    font-family: 'Fragment Mono', monospace;
+    font-size: .85rem;
+
+    outline: none;
+    resize: none;
+
+    min-height: 42px;
+    max-height: 120px;
+
+    overflow-y: auto;
+    line-height: 1.5;
     }
 
     .chat-input::placeholder {
@@ -1500,4 +1578,203 @@
       font-size: .7rem;
       color: var(--muted);
       line-height: 1.4;
+    }
+
+    /* Typing Indicator */
+    .typing-indicator {
+      font-size: 0.8rem;
+      color: var(--muted);
+      padding: 10px 24px;
+      font-style: italic;
+      animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      background: rgba(0, 0, 0, 0.15);
+      flex-shrink: 0;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .5; }
+    }
+
+    /* Pokelu Offer Composer Style */
+    .offer-compose-card {
+      border: 1px solid rgba(168, 85, 247, 0.28);
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(38, 18, 64, 0.92), rgba(22, 10, 38, 0.96));
+      padding: 18px;
+      margin: 10px 20px 16px 20px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18);
+    }
+
+    .offer-compose-header h3 {
+      margin: 0;
+      color: #ffffff;
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .offer-compose-header span {
+      color: #a78bfa;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .offer-compose-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .offer-compose-card input,
+    .offer-compose-card textarea {
+      width: 100%;
+      border: 1px solid rgba(168, 85, 247, 0.28);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.055);
+      color: #ffffff;
+      padding: 12px 14px;
+      outline: none;
+      font-weight: 700;
+    }
+
+    .offer-compose-card textarea {
+      min-height: 78px;
+      margin-top: 12px;
+      resize: vertical;
+    }
+
+    .offer-compose-card input::placeholder,
+    .offer-compose-card textarea::placeholder {
+      color: rgba(221, 214, 254, 0.62);
+    }
+
+    #sendOfferBtn {
+      margin-top: 14px;
+      border: none;
+      border-radius: 14px;
+      padding: 12px 18px;
+      background: linear-gradient(135deg, #ec2bbd, #8b5cf6);
+      color: #ffffff;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 12px 28px rgba(168, 85, 247, 0.28);
+      transition: all 0.2s;
+    }
+
+    #sendOfferBtn:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+      box-shadow: 0 12px 28px rgba(236, 43, 189, 0.4);
+    }
+
+    /* Pokelu Offer Card Style in Chat */
+    .chat-offer-card {
+      width: 100%;
+      max-width: 430px;
+      border-radius: 20px;
+      border: 1px solid rgba(168, 85, 247, 0.32);
+      background: linear-gradient(180deg, rgba(43, 20, 72, 0.95), rgba(24, 11, 42, 0.96));
+      padding: 16px;
+      color: #ffffff;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.2);
+      margin-top: 8px;
+      margin-bottom: 8px;
+      text-align: left;
+    }
+
+    .chat-offer-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .chat-offer-label {
+      color: #c4b5fd;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .chat-offer-title {
+      margin: 4px 0 0;
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .chat-offer-price {
+      color: #4ade80;
+      font-size: 22px;
+      font-weight: 900;
+      text-shadow: 0 0 14px rgba(74, 222, 128, 0.22);
+    }
+
+    .chat-offer-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .chat-offer-meta span {
+      border-radius: 999px;
+      padding: 5px 10px;
+      background: rgba(124, 58, 237, 0.28);
+      color: #ddd6fe;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .chat-offer-note {
+      margin: 12px 0 0;
+      color: #c4b5fd;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .chat-offer-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .chat-offer-nego-btn,
+    .chat-offer-done-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 14px;
+      color: #ffffff;
+      font-weight: 900;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .chat-offer-nego-btn {
+      background: #8b5cf6;
+    }
+
+    .chat-offer-done-btn {
+      background: #22c55e;
+    }
+
+    .chat-offer-nego-btn:hover,
+    .chat-offer-done-btn:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 768px) {
+      .offer-compose-grid {
+        grid-template-columns: 1fr;
+      }
+      .offer-compose-card {
+        margin: 10px;
+      }
+      .chat-offer-card {
+        max-width: 100%;
+      }
     }

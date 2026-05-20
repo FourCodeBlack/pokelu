@@ -14,6 +14,10 @@ return [
     |
     */
 
+'firebase' => [
+    'database_url'    => env('FIREBASE_DATABASE_URL', 'https://pokelu-project-default-rtdb.asia-southeast1.firebasedatabase.app'),
+    'database_secret' => env('FIREBASE_DATABASE_SECRET', 'ajjBzXf186EHls4ArFrasIxgStqiIsONB7B574IG'),
+],
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

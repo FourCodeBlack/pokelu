@@ -90,9 +90,9 @@
 
 @section('content')
 <div class="page-header">
-    <h1 class="section-title" style="margin:0;">Utasan Komunitas</h1>
+    <h1 class="section-title font text-light" style="margin:0;">Utasan Komunitas</h1>
     @if(session('firebase_uid'))
-        <a href="{{ route('threads.create') }}" class="btn-pink">+ Buat Utasan</a>
+        <a href="{{ route('threads.create') }}" class="btn-pink">+</a>
     @endif
 </div>
 

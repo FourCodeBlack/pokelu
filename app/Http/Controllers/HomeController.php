@@ -6,6 +6,7 @@ use App\Models\FirebaseHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
+use App\Services\CardExploreService;
 
 class HomeController extends Controller
 {
@@ -104,6 +105,15 @@ class HomeController extends Controller
         // Ambil 1 paling populer
         $popularForum = $forumScored[0] ?? null;
 
-        return view('home.index', compact('popularCards', 'popularForum'));
+        // ── 6. Discovery Harian dari Explore Page 1 ──
+        $exploreService = new CardExploreService();
+        $discoveryCards = $exploreService->getPage(1, 20);
+
+        logger()->info('Discovery count', [
+            'count' => count($discoveryCards),
+            'first' => $discoveryCards[0] ?? null,
+        ]);
+
+        return view('home.index', compact('popularCards', 'popularForum', 'discoveryCards'));
     }
 }

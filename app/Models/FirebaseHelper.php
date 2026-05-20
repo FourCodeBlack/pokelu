@@ -40,7 +40,8 @@ class FirebaseHelper extends Model
     {
         return self::db($path)->getValue() !== null;
     }
-    public static function child(string $path,string $child){
+    public static function child(string $path, string $child)
+    {
         return self::db($path)->getChild($child);
     }
 }

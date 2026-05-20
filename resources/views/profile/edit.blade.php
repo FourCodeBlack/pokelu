@@ -28,7 +28,7 @@
             <label>Avatar</label>
 
             <div class="d-flex gap-3 flex-wrap mt-2">
-                @foreach (['pfp1', 'pfp2', 'pfp3','pfp4','pfp5','pfp6'] as $avatar)
+                @foreach (['pfp1', 'pfp2', 'pfp3','pfp4','pfp5','pfp6','pfp7','pfp8'] as $avatar)
                     <label class="avatar-option">
                         <input type="radio" name="pfp" value="{{ $avatar }}" class="d-none" {{ ($data['pfp'] ?? 'default') == $avatar ? 'checked' : '' }}>
 

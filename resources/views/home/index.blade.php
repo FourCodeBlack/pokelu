@@ -139,6 +139,51 @@
 
     </section>
 
+    {{-- ── Section: Discovery Harian ── --}}
+    <section class="daily-discovery-section">
+        <div class="popular-header">
+            <h2 class="popular-title">Discovery Harian</h2>
+        </div>
+
+        <div class="daily-discovery-row">
+            @foreach ($discoveryCards ?? [] as $card)
+                <a href="{{ route('card.detail', ['id' => $card['id']]) }}"
+                   class="daily-discovery-card">
+                    <div class="daily-discovery-image-wrap">
+                        @if (!empty($card['image']))
+                            <img src="{{ $card['image'] }}"
+                                 alt="{{ $card['name'] }}"
+                                 class="daily-discovery-image"
+                                 draggable="false"
+                                 loading="lazy">
+                        @else
+                            <div class="daily-discovery-placeholder">?</div>
+                        @endif
+
+                        @if (($card['offer_count'] ?? 0) > 0)
+                            <span class="daily-discovery-badge">
+                                {{ $card['offer_count'] }} offer
+                            </span>
+                        @endif
+                    </div>
+
+                    <div class="daily-discovery-name">
+                        {{ $card['name'] }}
+                    </div>
+                </a>
+            @endforeach
+
+            <a href="{{ route('jelajah') }}"
+               class="daily-discovery-card daily-discovery-more-card">
+                <div class="daily-discovery-more-box">
+                    <span>Lainnya</span>
+                    <small>Jelajahi kartu lain</small>
+                </div>
+                <div class="daily-discovery-name">&nbsp;</div>
+            </a>
+        </div>
+    </section>
+
 </div>
 @endsection
 
@@ -171,5 +216,82 @@
             track.scrollLeft = scrollLeft - walk;
         });
     })();
+
+    // Drag & Wheel horizontal scroll untuk Discovery Harian
+    document.addEventListener('DOMContentLoaded', function () {
+        const slider = document.querySelector('.daily-discovery-row');
+
+        if (!slider) return;
+
+        let isDown = false;
+        let startX = 0;
+        let scrollLeft = 0;
+        let moved = false;
+
+        slider.addEventListener('mousedown', function (e) {
+            isDown = true;
+            moved = false;
+            startX = e.pageX - slider.offsetLeft;
+            scrollLeft = slider.scrollLeft;
+            slider.classList.add('is-dragging');
+        });
+
+        slider.addEventListener('mouseleave', function () {
+            isDown = false;
+            slider.classList.remove('is-dragging');
+        });
+
+        slider.addEventListener('mouseup', function () {
+            isDown = false;
+            setTimeout(function () {
+                slider.classList.remove('is-dragging');
+            }, 0);
+        });
+
+        slider.addEventListener('mousemove', function (e) {
+            if (!isDown) return;
+
+            const x = e.pageX - slider.offsetLeft;
+            const walk = (x - startX) * 1.3;
+
+            if (Math.abs(walk) > 6) {
+                moved = true;
+                e.preventDefault();
+            }
+
+            slider.scrollLeft = scrollLeft - walk;
+        });
+
+        slider.addEventListener('click', function (e) {
+            if (moved) {
+                e.preventDefault();
+                e.stopPropagation();
+                moved = false;
+            }
+        }, true);
+
+        slider.addEventListener('wheel', function (e) {
+            const canScrollHorizontally = slider.scrollWidth > slider.clientWidth;
+
+            if (!canScrollHorizontally) return;
+
+            const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX)
+                ? e.deltaY
+                : e.deltaX;
+
+            const atStart = slider.scrollLeft <= 0;
+            const atEnd = Math.ceil(slider.scrollLeft + slider.clientWidth) >= slider.scrollWidth;
+
+            const scrollingLeft = delta < 0;
+            const scrollingRight = delta > 0;
+
+            if ((scrollingLeft && atStart) || (scrollingRight && atEnd)) {
+                return;
+            }
+
+            e.preventDefault();
+            slider.scrollLeft += delta * 1.2;
+        }, { passive: false });
+    });
 </script>
 @endpush

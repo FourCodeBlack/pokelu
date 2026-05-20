@@ -5,6 +5,48 @@
 
 @push('styles')
   @vite('resources/css/card-detail.css')
+  <style>
+    .offer-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 12px;
+    }
+
+    .offer-delete-btn {
+        border: 1px solid rgba(255, 92, 122, 0.45);
+        border-radius: 14px;
+        padding: 10px 16px;
+        background: linear-gradient(135deg, rgba(255, 75, 110, 0.95), rgba(190, 24, 93, 0.95));
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        box-shadow: 0 10px 24px rgba(255, 75, 110, 0.18);
+        transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    }
+
+    .offer-delete-btn:hover {
+        transform: translateY(-1px);
+        opacity: 0.95;
+        box-shadow: 0 14px 30px rgba(255, 75, 110, 0.25);
+    }
+
+    .offer-delete-btn:active {
+        transform: translateY(0);
+    }
+
+    .admin-delete-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgba(255, 75, 110, 0.14);
+        color: #ff9eb0;
+        font-size: 12px;
+        font-weight: 700;
+    }
+  </style>
 @endpush
 
 @section('content')
@@ -175,11 +217,15 @@
         {{-- ── USER BAR (sudah login) ── --}}
         <div class="user-bar" x-show="currentUser" x-cloak>
           <div class="user-info">
-            <img src="{{ asset('images/avatar/' . ($data['pfp'] ?? 'default') . '.png') }}" class="user-avatar">
-            <span x-text="currentUser?.displayName || currentUser?.email || 'Anonymous'" class="text-light font"></span>
+            <img :src="'/images/avatar/' + (currentUserPfp || 'default') + '.png'" class="user-avatar">
+            <span x-text="(userCache[currentUser?.uid]?.name || userCache[currentUser?.uid]?.username) || currentUser?.displayName || currentUser?.email || 'Anonymous'" class="text-light font"></span>
           </div>
           <button class="btn-logout" @click="logout()">Keluar</button>
         </div>
+
+        {{-- Debug sementara --}}
+        {{-- UID: {{ $offers[0]['uid'] ?? 'NULL' }} --}}
+        {{-- Seller: {{ json_encode($offers[0]['seller'] ?? []) }} --}}
 
         {{-- ── MARKET HEADER ── --}}
         <div class="market-header">
@@ -221,24 +267,25 @@
             <div class="offer-card">
               <div class="offer-top">
                 <div class="offer-seller">
-                  <img :src="'/images/avatar/' + (offer.resolvedPfp || offer.photoURL || 'default') + '.png'"
+                  <img :src="'/images/avatar/' + (offer.resolvedPfp || 'default') + '.png'"
                     class="offer-avatar">
                   <div>
-                    <span class="offer-seller-name text-light" x-text="offer.displayName || 'Anonymous'"></span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span class="offer-seller-name text-light" x-text="offer.resolvedName"></span>
+                      <template x-if="offer.resolvedRole === 'admin'">
+                        <span class="admin-delete-badge" style="position: static; font-size: 10px; padding: 2px 6px;">Admin</span>
+                      </template>
+                    </div>
                     <span class="offer-seller-sub"
-                      x-text="offer.soldCount ? offer.soldCount + ' cards sold' : 'New seller'"></span>
+                      x-text="offer.resolvedHandle || '@user'"></span>
                   </div>
                 </div>
                 <div class="offer-price">
                   <span x-text="'$' + parseFloat(offer.price).toFixed(2)"></span>
-                  <template x-if="isAdmin || offer.uid === currentUser?.uid">
-                    <form method="POST" :action="`/cards/${cardId}/offers/${offer.id}`" onsubmit="return confirm('Yakin ingin menghapus penawaran ini? Semua reply di dalamnya juga akan terhapus.');" style="display:inline-block; margin-left:8px;">
-                      @csrf
-                      @method('DELETE')
-                      <button type="submit" class="delete-mini-btn">
-                          Hapus
-                      </button>
-                    </form>
+                  <template x-if="canDeleteOffer(offer)">
+                    <button @click="deleteOffer(offer.id, offer)" class="offer-delete-btn" style="padding: 6px 12px; font-size: 12px; border-radius: 8px; margin-left: 8px;">
+                      <span x-text="isAdmin && offer.uid !== currentUser?.uid ? 'Hapus sebagai Admin' : 'Hapus Penawaran'"></span>
+                    </button>
                   </template>
                 </div>
               </div>
@@ -257,10 +304,10 @@
               <div class="offer-thread">
                 <template x-for="reply in (offer.replies || [])" :key="reply.id">
                   <div class="thread-item" :class="{ 'thread-mine': reply.uid === currentUser?.uid }">
-                    <img :src="'/images/avatar/' + (reply.resolvedPfp || reply.photoURL || 'default') + '.png'"
+                    <img :src="'/images/avatar/' + (reply.resolvedPfp || 'default') + '.png'"
                       class="thread-avatar">
                     <div class="thread-bubble" style="flex:1;">
-                      <span class="thread-name" x-text="reply.displayName || 'Anonymous'"></span>
+                      <span class="thread-name" x-text="reply.resolvedName"></span>
                       <p class="thread-text text-light" x-text="reply.text"></p>
                     </div>
                     @if($isAdmin ?? false)
@@ -272,7 +319,7 @@
                 </template>
 
                 <div class="thread-reply-form" x-show="currentUser">
-                  <input type="text" :placeholder="'Balas ke ' + (offer.displayName || 'penjual') + '…'"
+                  <input type="text" :placeholder="'Balas ke ' + (offer.resolvedName || 'penjual') + '…'"
                     class="thread-input" @keydown.enter="replyOffer(offer, $event)" x-model="offer._replyDraft">
                   <button class="thread-send" @click="replyOffer(offer, null, offer._replyDraft)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -345,13 +392,13 @@
           <div class="comments-list">
             <template x-for="c in comments" :key="c.id">
               <div class="comment-item">
-                <img :src="'/images/avatar/' + (c.resolvedPfp || c.photoURL || 'default') + '.png'"
+                <img :src="'/images/avatar/' + (c.resolvedPfp || 'default') + '.png'"
                   class="comment-avatar">
                 {{-- BREAKPOINT --}}
                 <div class="comment-body">
                   <div class="comment-header" style="display:flex; justify-content:space-between; width:100%;">
                     <div>
-                      <span class="comment-name" x-text="c.displayName || 'Anonymous'"></span>
+                      <span class="comment-name" x-text="c.resolvedName"></span>
                       <span class="comment-time" x-text="timeAgo(c.createdAt)"></span>
                     </div>
                     <template x-if="isAdmin || c.uid === currentUser?.uid">
@@ -405,23 +452,7 @@
 @endsection
 
 @push('scripts')
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-
   <script>
-    if (!firebase.apps.length) {
-      firebase.initializeApp({
-        apiKey: "AIzaSyDr7r6PrzHWUX6i_5bMnL9I7eZMcx2AS_s",
-        authDomain: "pokelu-project.firebaseapp.com",
-        databaseURL: "https://pokelu-project-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "pokelu-project",
-        storageBucket: "pokelu-project.firebasestorage.app",
-        messagingSenderId: "210207641471",
-        appId: "1:210207641471:web:aff0df7b7b3acb0ce2d44a"
-      });
-    }
-
     const auth = firebase.auth();
     const db = firebase.database();
     const FB_TIMESTAMP = firebase.database.ServerValue.TIMESTAMP;
@@ -446,21 +477,44 @@
         passInput: '',
         authError: '',
         wished: false,
-        offers: [],
+        offers: @json($offers ?? []),
         newOffer: { price: '', condition: '', desc: '' },
         priceStats: { count: 0, min: 0, max: 0, avg: 0 },
-        comments: [],
+        comments: @json($comments ?? []),
         newComment: '',
         chatOpen: false,
         chatTarget: null,
         chatMessages: [],
         chatDraft: '',
 
+        canDeleteOffer(offer) {
+          if (!this.currentUser) return false;
+          return this.isAdmin || offer.uid === this.currentUser.uid;
+        },
+
+        async deleteOffer(offerId, offer) {
+          if (!this.canDeleteOffer(offer)) {
+            alert('Kamu tidak punya izin menghapus penawaran ini.');
+            return;
+          }
+
+          if (!confirm('Yakin ingin menghapus penawaran ini?')) {
+            return;
+          }
+
+          try {
+            await db.ref(`cards/${this.cardId}/offers/${offerId}`).remove();
+          } catch(e) {
+            console.error(e);
+            alert('Gagal menghapus penawaran.');
+          }
+        },
+
         async init() {
           auth.onAuthStateChanged(async user => {
             this.currentUser = user;
             if (user) {
-              this.currentUserPfp = await this.fetchPfp(user.uid);
+              this.fetchUser(user.uid);
               if (window.location.hash === '#diskusi') {
                 this.$nextTick(() => {
                   const section = document.getElementById('diskusi');
@@ -469,52 +523,120 @@
                 });
               }
             } else {
+              this.isAdmin = false;
               this.currentUserPfp = 'default';
             }
           });
 
-          db.ref(`cards/${this.cardId}/offers`).orderByChild('createdAt').on('value', async snapshot => {
+          db.ref(`cards/${this.cardId}/offers`).orderByChild('createdAt').on('value', snapshot => {
             const arr = snapshotToArray(snapshot).reverse();
 
-            const offerUids = [...new Set(arr.map(o => o.uid).filter(Boolean))];
-            await Promise.all(offerUids.map(uid => this.fetchPfp(uid)));
+            arr.forEach(o => {
+              if (o.uid) this.fetchUser(o.uid);
+            });
 
-            this.offers = arr.map(o => ({
-              ...o,
-              _replyDraft: '',
-              resolvedPfp: this.pfpCache[o.uid] || o.photoURL || 'default'
-            }));
+            this.offers = arr.map(o => {
+              console.log('Render offer:', o.id, o);
+              console.log('Offer uid:', o.uid);
+              const u = this.userCache[o.uid] || {};
+              return {
+                ...o,
+                _replyDraft: '',
+                resolvedPfp: u.pfp || 'default',
+                resolvedName: u.name || u.username || 'User',
+                resolvedHandle: this.getUserHandle(u),
+                resolvedRole: u.role || 'user'
+              };
+            });
 
             this.calcPriceStats();
             this.offers.forEach(o => this.loadReplies(o));
           });
 
-          db.ref(`cards/${this.cardId}/comments`).orderByChild('createdAt').limitToLast(50).on('value', async snapshot => {
+          db.ref(`cards/${this.cardId}/comments`).orderByChild('createdAt').limitToLast(50).on('value', snapshot => {
             const arr = snapshotToArray(snapshot).reverse();
-            // Fetch pfp untuk setiap uid unik di comments
-            const uids = [...new Set(arr.map(c => c.uid).filter(Boolean))];
-            await Promise.all(uids.map(uid => this.fetchPfp(uid)));
+            
+            arr.forEach(c => {
+              if (c.uid) this.fetchUser(c.uid);
+            });
 
-            this.comments = arr.map(c => ({
-              ...c,
-              resolvedPfp: this.pfpCache[c.uid] || 'default'
-            }));
+            this.comments = arr.map(c => {
+              const u = this.userCache[c.uid] || {};
+              return {
+                ...c,
+                resolvedPfp: u.pfp || 'default',
+                resolvedName: u.name || u.username || 'User',
+                resolvedHandle: this.getUserHandle(u),
+                resolvedRole: u.role || 'user'
+              };
+            });
           });
         },
 
-        // Fetch pfp dari DB dengan cache — tidak akan double fetch uid yang sama
-        async fetchPfp(uid) {
-          if (!uid) return 'default';
-          if (this.pfpCache[uid]) return this.pfpCache[uid];
-          try {
-            const snap = await db.ref(`users/${uid}/pfp`).once('value');
-            // console.log('fetchPfp', uid, snap.val()); // Debugging line, can be removed
-            this.pfpCache[uid] = snap.val() || 'default';
-          } catch (e) {
-            console.error('fetchPfp error', e); // <-- dan ini
-            this.pfpCache[uid] = 'default';
-          }
-          return this.pfpCache[uid];
+        getUserHandle(u) {
+          if (!u) return '@user';
+          if (u.handle) return u.handle.startsWith('@') ? u.handle : '@' + u.handle;
+          const name = u.name || u.username || 'user';
+          return '@' + name.toLowerCase().replace(/\s+/g, '');
+        },
+
+        userCache: {},
+        watchedUids: new Set(),
+
+        fetchUser(uid) {
+          if (!uid) return;
+          if (this.watchedUids.has(uid)) return;
+          this.watchedUids.add(uid);
+
+          db.ref(`users/${uid}`).on('value', snapshot => {
+            const userData = snapshot.val() || {};
+            console.log('Offer UID:', uid);
+            console.log('User profile:', uid, snapshot.val());
+
+            this.userCache[uid] = userData;
+            
+            if (this.currentUser && uid === this.currentUser.uid) {
+              this.currentUserPfp = userData.pfp || 'default';
+              this.isAdmin = userData.role === 'admin';
+            }
+
+            this.refreshListProfiles();
+          });
+        },
+
+        refreshListProfiles() {
+          this.offers = this.offers.map(o => {
+            const u = this.userCache[o.uid] || {};
+            const mappedReplies = (o.replies || []).map(r => {
+              const ru = this.userCache[r.uid] || {};
+              return {
+                ...r,
+                resolvedPfp: ru.pfp || 'default',
+                resolvedName: ru.name || ru.username || 'User',
+                resolvedHandle: this.getUserHandle(ru),
+                resolvedRole: ru.role || 'user'
+              };
+            });
+            return {
+              ...o,
+              resolvedPfp: u.pfp || 'default',
+              resolvedName: u.name || u.username || 'User',
+              resolvedHandle: this.getUserHandle(u),
+              resolvedRole: u.role || 'user',
+              replies: mappedReplies
+            };
+          });
+
+          this.comments = this.comments.map(c => {
+            const u = this.userCache[c.uid] || {};
+            return {
+              ...c,
+              resolvedPfp: u.pfp || 'default',
+              resolvedName: u.name || u.username || 'User',
+              resolvedHandle: this.getUserHandle(u),
+              resolvedRole: u.role || 'user'
+            };
+          });
         },
 
         async loginGoogle() {
@@ -544,8 +666,6 @@
           try {
             await db.ref(`cards/${this.cardId}/offers`).push({
               uid: u.uid,
-              displayName: u.displayName || u.email,
-              photoURL: this.currentUserPfp,
               price: parseFloat(this.newOffer.price),
               condition: this.newOffer.condition || '',
               desc: this.newOffer.desc,
@@ -556,18 +676,25 @@
         },
 
         loadReplies(offer) {
-          db.ref(`cards/${this.cardId}/offers/${offer.id}/replies`).orderByChild('createdAt').on('value', async snapshot => {
+          db.ref(`cards/${this.cardId}/offers/${offer.id}/replies`).orderByChild('createdAt').on('value', snapshot => {
             const replies = snapshotToArray(snapshot);
 
-            const uids = [...new Set(replies.map(r => r.uid).filter(Boolean))];
-            await Promise.all(uids.map(uid => this.fetchPfp(uid)));
+            replies.forEach(r => {
+              if (r.uid) this.fetchUser(r.uid);
+            });
 
             const idx = this.offers.findIndex(o => o.id === offer.id);
             if (idx > -1) {
-              this.offers[idx].replies = replies.map(r => ({
-                ...r,
-                resolvedPfp: this.pfpCache[r.uid] || r.photoURL || 'default'
-              }));
+              this.offers[idx].replies = replies.map(r => {
+                const u = this.userCache[r.uid] || {};
+                return {
+                  ...r,
+                  resolvedPfp: u.pfp || 'default',
+                  resolvedName: u.name || u.username || 'User',
+                  resolvedHandle: this.getUserHandle(u),
+                  resolvedRole: u.role || 'user'
+                };
+              });
             }
           });
         },
@@ -578,8 +705,6 @@
           try {
             await db.ref(`cards/${this.cardId}/offers/${offer.id}/replies`).push({
               uid: u.uid,
-              displayName: u.displayName || u.email,
-              photoURL: this.currentUserPfp,
               text: offer._replyDraft.trim(),
               createdAt: FB_TIMESTAMP
             });
@@ -604,8 +729,6 @@
           try {
             await db.ref(`cards/${this.cardId}/comments`).push({
               uid: u.uid,
-              displayName: u.displayName || u.email,
-              photoURL: this.currentUserPfp,
               text: this.newComment.trim(),
               createdAt: FB_TIMESTAMP
             });
@@ -619,7 +742,7 @@
           db.ref(`user_rooms/${this.currentUser.uid}/${roomId}`).once('value').then(snap => {
             if (!snap.exists()) {
               db.ref(`user_rooms/${this.currentUser.uid}/${roomId}`).set({
-                name: offer.displayName || 'Penjual',
+                name: offer.resolvedName || 'Penjual',
                 avatar: offer.resolvedPfp || 'default',
                 lastMsg: '',
                 lastTs: Date.now(),
@@ -627,7 +750,7 @@
               });
               // Do NOT write partner's user_rooms from client; partner should create/update their own entry.
             }
-            window.location.href = `/chat?room=${roomId}&sellerId=${offer.uid}&sellerName=${encodeURIComponent(offer.displayName || 'Penjual')}&cardId=${this.cardId}`;
+            window.location.href = `/chat?room=${roomId}&sellerId=${offer.uid}&sellerName=${encodeURIComponent(offer.resolvedName || 'Penjual')}&cardId=${this.cardId}`;
           });
         },
 

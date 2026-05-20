@@ -16,6 +16,7 @@ export default defineConfig({
                 'resources/css/card-detail.css',
 
                 'resources/css/explore.css',
+                'resources/css/chat.css',
                 'resources/js/explore-search.js'
             ],
             refresh: true,
