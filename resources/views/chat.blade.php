@@ -332,8 +332,25 @@
       setupUserStatusListener();
 
       if (initCard) loadOffersForCard(initCard);
+
       if (initRoom && initSeller) {
-        setTimeout(() => openRoom(initRoom, initName, initSeller), 800);
+        if (initSeller === user.uid) {
+          console.warn('[CHAT] Self-to-self room detected — skipping. Check sellerId in URL.');
+        } else {
+          // Fetch seller name from Firebase — initName from URL is often empty
+          // because card-detail does not pass sellerName param.
+          const sellerName = await fetchDisplayName(initSeller);
+          console.log('CHAT INIT', {
+            roomId:     initRoom,
+            currentUid: user.uid,
+            sellerId:   initSeller,
+            sellerName,
+            cardId:     initCard,
+            offerId:    selectedOfferId,
+            databaseURL: firebase.app().options.databaseURL
+          });
+          openRoom(initRoom, sellerName || 'Penjual', initSeller);
+        }
       }
     });
 
@@ -677,6 +694,12 @@ Object.keys(knownRooms).forEach(rId => {
     async function createOrOpenRoom(partnerId, partnerName, partnerPfp) {
       if (!currentUser) return;
 
+      // Guard: never open a room with yourself
+      if (currentUser.uid === partnerId) {
+        console.warn('[createOrOpenRoom] Self-to-self chat detected. Aborting.', { uid: currentUser.uid, partnerId });
+        return;
+      }
+
       const uids   = [currentUser.uid, partnerId].sort();
       const roomId = `${uids[0]}_${uids[1]}`;
 
@@ -979,6 +1002,7 @@ Object.keys(knownRooms).forEach(rId => {
       messagesListenerAttached = false;
 
       const msgsRef = db.ref(`chats/${roomId}/messages`).orderByChild('createdAt').limitToLast(100);
+      console.log('LISTENING PATH:', `chats/${roomId}/messages`);
 
       // ── child_added: render each message once ──
       const addedHandler = msgsRef.on('child_added', async snapshot => {
@@ -1309,8 +1333,9 @@ Object.keys(knownRooms).forEach(rId => {
       const text      = input.value.trim();
       const fileInput = document.getElementById('fileInput');
 
-      // Only proceed if there is actual text or a file
+      // Guard: refuse to send with no room or no user
       if (!text && !fileInput.files.length) return;
+      console.log('SEND MESSAGE TO PATH:', `chats/${activeRoomId}/messages`);
 
       input.value = '';
       autoResizeTextarea(input);
@@ -1378,8 +1403,7 @@ Object.keys(knownRooms).forEach(rId => {
           ? '📸 Gambar'
           : (messageData.fileUrl ? `📎 ${messageData.fileName}` : text);
 
-        await db.ref(`user_rooms/${currentUser.uid}/${activeRoomId}`)
-          .update({ lastMsg: preview, lastTs: Date.now() });
+        await updateRoomLastMsg(preview);
       } catch (e) {
         console.error('sendMessage error:', e);
         alert('Gagal mengirim pesan.');
@@ -1414,7 +1438,7 @@ Object.keys(knownRooms).forEach(rId => {
           type: 'text', deletedForAll: true,
         });
         if (replyTo && String(replyTo.id) === String(msgId)) clearReplyPreview();
-        db.ref(`user_rooms/${currentUser.uid}/${activeRoomId}`).update({ lastMsg: 'Pesan telah dihapus' });
+        await updateRoomLastMsg('Pesan telah dihapus');
       } catch (e) {
         console.error('deleteMessageForAll error:', e);
       }
@@ -1603,15 +1627,84 @@ Object.keys(knownRooms).forEach(rId => {
       }
     }
 
+    // ── ensureRoomParticipants ──
+    // Must be called before any user_rooms write.
+    // The new Firebase rule requires both auth.uid AND $uid to be
+    // present in chats/{roomId}/participants for the write to succeed.
+    async function ensureRoomParticipants() {
+      if (!activeRoomId || !currentUser) return;
+      const partnerId = activePartnerId || initSeller || '';
+      if (!partnerId || partnerId === currentUser.uid) return;
+      try {
+        await db.ref(`chats/${activeRoomId}/participants`).update({
+          [currentUser.uid]: true,
+          [partnerId]:       true,
+        });
+      } catch (e) {
+        console.warn('[ensureRoomParticipants] failed:', e.message);
+      }
+    }
+
     async function updateRoomLastMsg(previewText) {
       if (!activeRoomId || !currentUser) return;
-      const ts = Date.now();
-      // Only write to current user's own user_rooms — Firebase rules deny writes to other users' paths
+      const ts        = Date.now();
+      const partnerId = activePartnerId || initSeller || '';
+
+      console.log('[updateRoomLastMsg] debug:', {
+        roomId:     activeRoomId,
+        myUid:      currentUser.uid,
+        partnerUid: partnerId,
+      });
+
+      if (!partnerId || partnerId === currentUser.uid) return;
+
+      // Step 1: ensure participants exist so the rule passes
+      await ensureRoomParticipants();
+
+      // Step 2: resolve display info (never store Google photoURL)
+      const myName       = nameCache[currentUser.uid]
+                           || (await fetchDisplayName(currentUser.uid));
+      const myAvatar     = pfpCache[currentUser.uid]
+                           || (await fetchPfp(currentUser.uid));
+      const partnerName  = (knownRooms[activeRoomId] && knownRooms[activeRoomId].name)
+                           || (await fetchDisplayName(partnerId))
+                           || 'User';
+      const partnerAvatar = (knownRooms[activeRoomId] && knownRooms[activeRoomId].avatar)
+                           || (await fetchPfp(partnerId))
+                           || 'default';
+
+      // Step 3: atomic multi-path update — both sides in one request
+      const updates = {
+        [`user_rooms/${currentUser.uid}/${activeRoomId}`]: {
+          name:      partnerName,
+          avatar:    partnerAvatar,
+          lastMsg:   previewText,
+          lastTs:    ts,
+          partnerId: partnerId,
+        },
+        [`user_rooms/${partnerId}/${activeRoomId}`]: {
+          name:      myName,
+          avatar:    myAvatar || 'default',
+          lastMsg:   previewText,
+          lastTs:    ts,
+          partnerId: currentUser.uid,
+        },
+      };
+
       try {
-        await db.ref(`user_rooms/${currentUser.uid}/${activeRoomId}`)
-          .update({ lastMsg: previewText, lastTs: ts });
+        await db.ref().update(updates);
+        console.log('[updateRoomLastMsg] multi-path update success');
       } catch (e) {
-        console.warn('[updateRoomLastMsg] Failed (non-fatal):', e.message);
+        console.error('[updateRoomLastMsg] multi-path failed:', e.message);
+        // Fallback: at least update sender's own side
+        try {
+          await db.ref(`user_rooms/${currentUser.uid}/${activeRoomId}`).update({
+            lastMsg: previewText,
+            lastTs:  ts,
+          });
+        } catch (e2) {
+          console.warn('[updateRoomLastMsg] fallback also failed:', e2.message);
+        }
       }
     }
 

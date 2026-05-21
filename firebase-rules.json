@@ -4,11 +4,21 @@
       "$uid": {
         ".read": "auth != null",
         ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
-        "rating": { ".write": "auth != null" },
-        "totalReviews": { ".write": "auth != null" },
-        "totalTransactions": { ".write": "auth != null" },
-        "sellerReputation": { ".write": "auth != null" },
-        "updatedAt": { ".write": "auth != null" }
+        "rating": {
+          ".write": "auth != null"
+        },
+        "totalReviews": {
+          ".write": "auth != null"
+        },
+        "totalTransactions": {
+          ".write": "auth != null"
+        },
+        "sellerReputation": {
+          ".write": "auth != null"
+        },
+        "updatedAt": {
+          ".write": "auth != null"
+        }
       }
     },
     "cards": {
@@ -18,23 +28,49 @@
           "$offerId": {
             ".write": "auth != null && ((newData.exists() && newData.child('uid').val() == auth.uid) || (!newData.exists() && (data.child('uid').val() == auth.uid || root.child('users').child(auth.uid).child('role').val() == 'admin')))",
             ".validate": "newData.hasChildren(['uid','price','desc','createdAt'])",
-            "uid": { ".validate": "newData.val() === auth.uid" },
-            "displayName": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)" },
-            "photoURL": { ".validate": "!newData.exists() || newData.isString() || newData.val() === null" },
-            "price": { ".validate": "newData.isNumber() && newData.val() > 0" },
-            "condition": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)" },
-            "desc": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 1000)" },
-            "createdAt": { ".validate": "newData.isNumber()" },
-            "soldCount": { ".validate": "!newData.exists() || newData.isNumber()" },
+            "uid": {
+              ".validate": "newData.val() === auth.uid"
+            },
+            "displayName": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)"
+            },
+            "photoURL": {
+              ".validate": "!newData.exists() || newData.isString() || newData.val() === null"
+            },
+            "price": {
+              ".validate": "newData.isNumber() && newData.val() > 0"
+            },
+            "condition": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)"
+            },
+            "desc": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 1000)"
+            },
+            "createdAt": {
+              ".validate": "newData.isNumber()"
+            },
+            "soldCount": {
+              ".validate": "!newData.exists() || newData.isNumber()"
+            },
             "replies": {
               "$replyId": {
                 ".write": "auth != null && (data.val() === null || data.child('uid').val() === auth.uid)",
                 ".validate": "newData.hasChildren(['uid','text','createdAt'])",
-                "uid": { ".validate": "newData.val() === auth.uid" },
-                "displayName": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)" },
-                "photoURL": { ".validate": "!newData.exists() || newData.isString() || newData.val() === null" },
-                "text": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 1000" },
-                "createdAt": { ".validate": "newData.isNumber()" }
+                "uid": {
+                  ".validate": "newData.val() === auth.uid"
+                },
+                "displayName": {
+                  ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)"
+                },
+                "photoURL": {
+                  ".validate": "!newData.exists() || newData.isString() || newData.val() === null"
+                },
+                "text": {
+                  ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 1000"
+                },
+                "createdAt": {
+                  ".validate": "newData.isNumber()"
+                }
               }
             }
           }
@@ -44,11 +80,21 @@
           "$commentId": {
             ".write": "auth != null && (data.val() === null || data.child('uid').val() === auth.uid)",
             ".validate": "newData.hasChildren(['uid','text','createdAt'])",
-            "uid": { ".validate": "newData.val() === auth.uid" },
-            "displayName": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)" },
-            "photoURL": { ".validate": "!newData.exists() || newData.isString() || newData.val() === null" },
-            "text": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 1000" },
-            "createdAt": { ".validate": "newData.isNumber()" }
+            "uid": {
+              ".validate": "newData.val() === auth.uid"
+            },
+            "displayName": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)"
+            },
+            "photoURL": {
+              ".validate": "!newData.exists() || newData.isString() || newData.val() === null"
+            },
+            "text": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 1000"
+            },
+            "createdAt": {
+              ".validate": "newData.isNumber()"
+            }
           }
         }
       }
@@ -56,14 +102,24 @@
     "user_rooms": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid",
         "$roomId": {
+          ".write": "auth != null && root.child('chats').child($roomId).child('participants').child(auth.uid).val() == true && root.child('chats').child($roomId).child('participants').child($uid).val() == true",
           ".validate": "newData.hasChildren(['name','lastTs','partnerId'])",
-          "name": { ".validate": "newData.isString() && newData.val().length <= 100" },
-          "avatar": { ".validate": "!newData.exists() || newData.isString() || newData.val() === null" },
-          "lastMsg": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
-          "lastTs": { ".validate": "newData.isNumber()" },
-          "partnerId": { ".validate": "newData.isString()" }
+          "name": {
+            ".validate": "newData.isString() && newData.val().length <= 100"
+          },
+          "avatar": {
+            ".validate": "!newData.exists() || newData.isString() || newData.val() === null"
+          },
+          "lastMsg": {
+            ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)"
+          },
+          "lastTs": {
+            ".validate": "newData.isNumber()"
+          },
+          "partnerId": {
+            ".validate": "newData.isString()"
+          }
         }
       }
     },
@@ -72,7 +128,9 @@
         ".read": "auth != null && ($roomId.contains(auth.uid) || data.child('participants').child(auth.uid).exists())",
         ".write": "auth != null",
         "messages": {
-          ".indexOn": ["createdAt"],
+          ".indexOn": [
+            "createdAt"
+          ],
           "$messageId": {
             ".write": "auth != null && ($roomId.contains(auth.uid) || root.child('chats').child($roomId).child('participants').child(auth.uid).exists() || newData.child('senderId').val() == auth.uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
             ".validate": "(newData.hasChildren(['senderId','createdAt']) || newData.hasChildren(['uid','createdAt'])) || !newData.exists()"
@@ -93,35 +151,69 @@
           "$threadId": {
             ".write": "auth != null && (data.exists() ? data.child('uid').val() === auth.uid : newData.child('uid').val() === auth.uid)",
             ".validate": "newData.hasChildren(['uid','title','createdAt']) || !newData.exists()",
-            "uid": { ".validate": "newData.val() === auth.uid" },
-            "title": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 200" },
-            "category": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)" },
-            "body": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 2000)" },
-            "displayName": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)" },
-            "username": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)" },
-            "createdAt": { ".validate": "newData.isNumber()" }
+            "uid": {
+              ".validate": "newData.val() === auth.uid"
+            },
+            "title": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 200"
+            },
+            "category": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)"
+            },
+            "body": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 2000)"
+            },
+            "displayName": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)"
+            },
+            "username": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)"
+            },
+            "createdAt": {
+              ".validate": "newData.isNumber()"
+            }
           }
         },
         "comments": {
           ".read": true,
-          ".indexOn": ["createdAt"],
+          ".indexOn": [
+            "createdAt"
+          ],
           "$commentId": {
             ".write": "auth != null && (data.exists() ? data.child('uid').val() === auth.uid : newData.child('uid').val() === auth.uid)",
             ".validate": "newData.hasChildren(['uid','text','createdAt']) || !newData.exists()",
-            "uid": { ".validate": "newData.val() === auth.uid" },
-            "displayName": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)" },
-            "username": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)" },
-            "photoURL": { ".validate": "!newData.exists() || newData.isString() || newData.val() === null" },
-            "text": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 2000" },
-            "replyTo": { ".validate": "!newData.exists() || newData.isString() || newData.val() === null" },
-            "createdAt": { ".validate": "newData.isNumber()" },
+            "uid": {
+              ".validate": "newData.val() === auth.uid"
+            },
+            "displayName": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)"
+            },
+            "username": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)"
+            },
+            "photoURL": {
+              ".validate": "!newData.exists() || newData.isString() || newData.val() === null"
+            },
+            "text": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 2000"
+            },
+            "replyTo": {
+              ".validate": "!newData.exists() || newData.isString() || newData.val() === null"
+            },
+            "createdAt": {
+              ".validate": "newData.isNumber()"
+            },
             "reactions": {
               "$emoji": {
                 "$uid": {
                   ".write": "auth != null && auth.uid === $uid",
                   ".validate": "newData.hasChildren(['uid','createdAt']) || !newData.exists()",
-                  "uid": { ".validate": "newData.val() === auth.uid" },
-                  "createdAt": { ".validate": "newData.isNumber()" }
+                  "uid": {
+                    ".validate": "newData.val() === auth.uid"
+                  },
+                  "createdAt": {
+                    ".validate": "newData.isNumber()"
+                  }
                 }
               }
             }
@@ -129,29 +221,59 @@
         },
         "messages": {
           ".read": true,
-          ".indexOn": ["createdAt"],
+          ".indexOn": [
+            "createdAt"
+          ],
           "$msgId": {
             ".write": "auth != null && (data.exists() ? (data.child('uid').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin') : newData.child('uid').val() === auth.uid)",
             ".validate": "newData.hasChildren(['uid','text','createdAt']) || !newData.exists()",
-            "uid": { ".validate": "newData.val() === auth.uid" },
-            "displayName": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)" },
-            "username": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)" },
-            "pfp": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)" },
-            "photoURL": { ".validate": "!newData.exists() || newData.isString() || newData.val() === null" },
-            "type": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 50)" },
-            "text": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 2000)" },
-            "imageUrl": { ".validate": "!newData.exists() || newData.isString() || newData.val() === null" },
-            "imagePublicId": { ".validate": "!newData.exists() || newData.isString() || newData.val() === null" },
-            "replyTo": { ".validate": "!newData.exists() || newData.isString() || newData.val() === null" },
-            "createdAt": { ".validate": "newData.isNumber()" },
-            "updatedAt": { ".validate": "!newData.exists() || newData.isNumber()" },
+            "uid": {
+              ".validate": "newData.val() === auth.uid"
+            },
+            "displayName": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)"
+            },
+            "username": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)"
+            },
+            "pfp": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)"
+            },
+            "photoURL": {
+              ".validate": "!newData.exists() || newData.isString() || newData.val() === null"
+            },
+            "type": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 50)"
+            },
+            "text": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 2000)"
+            },
+            "imageUrl": {
+              ".validate": "!newData.exists() || newData.isString() || newData.val() === null"
+            },
+            "imagePublicId": {
+              ".validate": "!newData.exists() || newData.isString() || newData.val() === null"
+            },
+            "replyTo": {
+              ".validate": "!newData.exists() || newData.isString() || newData.val() === null"
+            },
+            "createdAt": {
+              ".validate": "newData.isNumber()"
+            },
+            "updatedAt": {
+              ".validate": "!newData.exists() || newData.isNumber()"
+            },
             "reactions": {
               "$emoji": {
                 "$uid": {
                   ".write": "auth != null && auth.uid === $uid",
                   ".validate": "newData.hasChildren(['uid','createdAt']) || !newData.exists()",
-                  "uid": { ".validate": "newData.val() === auth.uid" },
-                  "createdAt": { ".validate": "newData.isNumber()" }
+                  "uid": {
+                    ".validate": "newData.val() === auth.uid"
+                  },
+                  "createdAt": {
+                    ".validate": "newData.isNumber()"
+                  }
                 }
               }
             }
@@ -162,9 +284,15 @@
             ".read": true,
             ".write": "auth != null && auth.uid === $uid",
             ".validate": "newData.hasChildren(['username','isTyping','updatedAt']) || !newData.exists()",
-            "username": { ".validate": "newData.isString() && newData.val().length <= 100" },
-            "isTyping": { ".validate": "newData.isBoolean()" },
-            "updatedAt": { ".validate": "newData.isNumber()" }
+            "username": {
+              ".validate": "newData.isString() && newData.val().length <= 100"
+            },
+            "isTyping": {
+              ".validate": "newData.isBoolean()"
+            },
+            "updatedAt": {
+              ".validate": "newData.isNumber()"
+            }
           }
         },
         "likes": {
@@ -172,21 +300,31 @@
             ".read": true,
             ".write": "auth != null && auth.uid === $uid",
             ".validate": "newData.hasChildren(['uid','createdAt']) || !newData.exists()",
-            "uid": { ".validate": "newData.val() === auth.uid" },
-            "createdAt": { ".validate": "newData.isNumber()" }
+            "uid": {
+              ".validate": "newData.val() === auth.uid"
+            },
+            "createdAt": {
+              ".validate": "newData.isNumber()"
+            }
           }
         }
       }
     },
     "transactions": {
-      ".indexOn": ["sellerId", "roomId"],
+      ".indexOn": [
+        "sellerId",
+        "roomId"
+      ],
       "$transactionId": {
         ".read": "auth != null && (data.child('buyerId').val() == auth.uid || data.child('sellerId').val() == auth.uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
         ".write": "auth != null"
       }
     },
     "reviews": {
-      ".indexOn": ["sellerId", "transactionId"],
+      ".indexOn": [
+        "sellerId",
+        "transactionId"
+      ],
       "$reviewId": {
         ".read": true,
         ".write": "auth != null && (newData.val() == null || newData.child('reviewerId').val() == auth.uid)"

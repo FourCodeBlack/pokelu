@@ -46,7 +46,18 @@
                 messagingSenderId: "210207641471",
                 appId: "1:210207641471:web:aff0df7b7b3acb0ce2d44a",
             });
+
+            // forceLongPolling: only supported in Firebase v8 compat.
+            // v10 compat removed .settings() — silently skip if unavailable.
+            try {
+                const _dbInst = firebase.database();
+                if (typeof _dbInst.settings === 'function') {
+                    _dbInst.settings({ forceLongPolling: true });
+                }
+            } catch (e) { /* non-fatal */ }
         }
+
+        console.log('[Firebase] databaseURL:', firebase.app().options.databaseURL);
 
         async function handleLogout(e) {
             e.preventDefault();

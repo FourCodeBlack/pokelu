@@ -751,22 +751,55 @@
           } catch (e) { console.error(e); }
         },
 
-        startChat(offer) {
+        async startChat(offer) {
           if (!this.currentUser) return;
+
+          // Guard: never open a room with yourself
+          if (this.currentUser.uid === offer.uid) {
+            console.warn('[startChat] Self-to-self chat. Check offer.uid.', { uid: this.currentUser.uid, offerUid: offer.uid });
+            return;
+          }
+
           const roomId = [this.currentUser.uid, offer.uid].sort().join('_') + '_' + this.cardId;
-          db.ref(`user_rooms/${this.currentUser.uid}/${roomId}`).once('value').then(snap => {
-            if (!snap.exists()) {
-              db.ref(`user_rooms/${this.currentUser.uid}/${roomId}`).set({
-                name: offer.resolvedName || 'Penjual',
-                avatar: offer.resolvedPfp || 'default',
-                lastMsg: '',
-                lastTs: Date.now(),
+
+          // Resolve current user's display info from local cache (NEVER store Google photoURL)
+          const myProfile = this.userCache[this.currentUser.uid] || {};
+          const myName    = myProfile.name || myProfile.username || 'User';
+          const myPfp     = myProfile.pfp  || 'default';
+
+          try {
+            const [mySnap, partnerSnap] = await Promise.all([
+              db.ref(`user_rooms/${this.currentUser.uid}/${roomId}`).once('value'),
+              db.ref(`user_rooms/${offer.uid}/${roomId}`).once('value'),
+            ]);
+
+            // Create buyer's room entry if missing
+            if (!mySnap.exists()) {
+              await db.ref(`user_rooms/${this.currentUser.uid}/${roomId}`).set({
+                name:      offer.resolvedName || 'Penjual',
+                avatar:    offer.resolvedPfp  || 'default',
+                lastMsg:   '',
+                lastTs:    Date.now(),
                 partnerId: offer.uid,
               });
-              // Do NOT write partner's user_rooms from client; partner should create/update their own entry.
             }
-            window.location.href = `/chat?room=${roomId}&sellerId=${offer.uid}&cardId=${this.cardId}&offerId=${offer.id}`;
-          });
+
+            // Create seller's room entry if missing
+            // Allowed by Firebase rules: $roomId.contains(auth.uid)
+            if (!partnerSnap.exists()) {
+              await db.ref(`user_rooms/${offer.uid}/${roomId}`).set({
+                name:      myName,
+                avatar:    myPfp,
+                lastMsg:   '',
+                lastTs:    Date.now(),
+                partnerId: this.currentUser.uid,
+              });
+            }
+          } catch (e) {
+            console.warn('[startChat] user_rooms setup failed (non-fatal):', e.message);
+          }
+
+          window.location.href = `/chat?room=${roomId}&sellerId=${offer.uid}&cardId=${this.cardId}&offerId=${offer.id}`;
         },
 
         toggleWish() { },
