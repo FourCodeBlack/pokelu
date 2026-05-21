@@ -69,23 +69,35 @@ class OfferController extends Controller
             }
         }
 
-        // ── 6. Enrich items: tambahkan cardName, cardImage, pfp final ──
+        // ── 6. Enrich items: tambahkan cardName, cardImage, user info final ──
         foreach ($items as &$item) {
             $cdata = $cardDataMap[$item['cardId']] ?? [];
 
             $item['cardName']  = $cdata['name']  ?? $this->cardNameFromId($item['cardId']);
             $item['cardImage'] = $cdata['image'] ?? $this->cardImageFromId($item['cardId']);
 
-            // Resolve pfp: prioritas pfp baru → photoURL lama (jika bukan URL) → lookup RTDB
+            $fbUser = [];
+            if ($item['uid']) {
+                $fbUser = FirebaseHelper::baca("users/{$item['uid']}") ?? [];
+            }
+
+            // Resolve displayName
+            $item['displayName'] = $fbUser['name'] ?? $fbUser['username'] ?? $item['displayName'] ?? 'User';
+
+            // Resolve handle
+            $item['handle'] = $fbUser['handle'] ?? null;
+            if (!$item['handle']) {
+                $name = $item['displayName'];
+                $item['handle'] = '@' . strtolower(str_replace(' ', '', $name));
+            }
+
+            // Resolve pfp
             if (!$item['pfp']) {
-                $photoURL = $item['photoURL'];
+                $photoURL = $item['photoURL'] ?? null;
                 if ($photoURL && !str_starts_with($photoURL, 'http')) {
                     $item['pfp'] = $photoURL;
-                } elseif ($item['uid']) {
-                    $fbUser    = FirebaseHelper::baca("users/{$item['uid']}");
-                    $item['pfp'] = $fbUser['pfp'] ?? 'default';
                 } else {
-                    $item['pfp'] = 'default';
+                    $item['pfp'] = $fbUser['pfp'] ?? 'default';
                 }
             }
         }
@@ -137,29 +149,30 @@ class OfferController extends Controller
             abort(401, 'Kamu harus login.');
         }
 
-        $db = FirebaseHelper::db();
+        $path = "cards/{$cardId}/offers/{$offerId}";
 
-        logger()->info('Delete offer request', [
-            'cardId' => $cardId,
-            'offerId' => $offerId,
+        logger()->info('[OfferController::destroy] Request', [
+            'cardId'     => $cardId,
+            'offerId'    => $offerId,
             'currentUid' => $currentUid,
-            'path' => "cards/{$cardId}/offers/{$offerId}",
+            'path'       => $path,
         ]);
 
-        $currentUserData = $db->getChild("users/{$currentUid}")->getValue() ?? [];
-        $isAdmin = ($currentUserData['role'] ?? null) === 'admin';
+        // Check admin role
+        $currentUserData = FirebaseHelper::baca("users/{$currentUid}") ?? [];
+        $isAdmin         = ($currentUserData['role'] ?? null) === 'admin';
 
-        $offerRef = $db->getChild("cards/{$cardId}/offers/{$offerId}");
-        $offer = $offerRef->getValue();
+        // Read the offer
+        $offer = FirebaseHelper::baca($path);
 
-        logger()->info('Delete offer result', [
-            'offer' => $offer,
+        logger()->info('[OfferController::destroy] Offer data', [
+            'offer'   => $offer,
             'isAdmin' => $isAdmin,
-            'currentUserData' => $currentUserData,
+            'path'    => $path,
         ]);
 
         if (!$offer) {
-            return back()->with('error', 'Penawaran tidak ditemukan.');
+            return back()->with('error', "Penawaran tidak ditemukan. (path: {$path})");
         }
 
         $isOwner = ($offer['uid'] ?? null) === $currentUid;
@@ -168,8 +181,9 @@ class OfferController extends Controller
             abort(403, 'Kamu tidak punya izin menghapus penawaran ini.');
         }
 
-        $offerRef->remove();
+        FirebaseHelper::hapus($path);
 
         return back()->with('success', 'Penawaran berhasil dihapus.');
     }
 }
+

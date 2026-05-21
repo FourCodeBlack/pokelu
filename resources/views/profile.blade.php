@@ -152,6 +152,24 @@
     </header>
 
     <body>
+        <div style="max-width: 1200px; margin: 30px auto 0; padding: 0 30px;">
+            <div class="seller-reputation-card">
+                <div>
+                    <span class="seller-reputation-label">Reputasi Seller</span>
+                    <h3>{{ $profileUser['sellerReputation'] ?? 'New Seller' }}</h3>
+                </div>
+
+                <div class="seller-rating-box">
+                    <strong>⭐ {{ isset($profileUser['rating']) ? number_format($profileUser['rating'], 1) : '0.0' }}</strong>
+                    <span>{{ $profileUser['totalReviews'] ?? 0 }} review</span>
+                </div>
+
+                <div class="seller-transaction-count">
+                    {{ $profileUser['totalTransactions'] ?? 0 }} transaksi selesai
+                </div>
+            </div>
+        </div>
+
         <section class="liked-tcg">
             <h1 class="font-family fs-3 text-light">Wishlist TCG</h1>
             @php
@@ -246,7 +264,7 @@
                                             @method('DELETE')
 
                                             <button type="submit" class="profile-offer-delete-btn">
-                                                {{ $isAdmin && !$isOwner ? 'Hapus Admin' : 'Hapus' }}
+                                                {{ $isAdmin && !$isOwner ? 'Hapus Presiden' : 'Hapus' }}
                                             </button>
                                         </form>
                                     @endif

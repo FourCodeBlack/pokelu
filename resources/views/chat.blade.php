@@ -66,23 +66,42 @@
     {{-- Typing Indicator --}}
     <div id="typingIndicator" class="typing-indicator" style="display:none;"></div>
 
-    {{-- Offer Compose Card --}}
-    <div class="offer-compose-card" id="offerComposeCard" style="display:none;">
-      <div class="offer-compose-header">
-        <h3>Kirim Offer</h3>
-        <span>Ajukan penawaran kartu</span>
-      </div>
+    {{-- Transaction Offer Picker --}}
+    <section id="offerPicker" class="offer-picker hidden">
+        <div class="offer-picker-head">
+            <div>
+                <h3>Penawaran Dipilih</h3>
+                <p>Kirim penawaran ini ke chat.</p>
+            </div>
 
-      <div class="offer-compose-grid">
-        <input id="offerPriceInput" type="number" min="0" placeholder="Harga offer">
-        <input id="offerConditionInput" type="text" placeholder="Kondisi kartu">
-      </div>
+            <button type="button" id="closeOfferPickerBtn" class="close-offer-picker">
+                ×
+            </button>
+        </div>
 
-      <textarea id="offerNoteInput" placeholder="Catatan opsional"></textarea>
+        <div id="offerPickerList" class="offer-picker-list">
+            <div class="offer-picker-loading">Memuat penawaran...</div>
+        </div>
+    </section>
 
-      <button id="sendOfferBtn" type="button">
-        Kirim Offer
-      </button>
+    {{-- Seller Review Box --}}
+    <div id="sellerReviewBox" class="seller-review-box hidden" style="display:none; margin: 10px 20px 16px 20px; padding: 18px;">
+        <h3>Beri Reputasi Seller</h3>
+        <p>Nilai pengalaman transaksi kamu.</p>
+
+        <select id="sellerRatingInput" style="margin-top: 10px;">
+            <option value="5">5 - Sangat baik</option>
+            <option value="4">4 - Baik</option>
+            <option value="3">3 - Cukup</option>
+            <option value="2">2 - Buruk</option>
+            <option value="1">1 - Sangat buruk</option>
+        </select>
+
+        <textarea id="sellerReviewComment" placeholder="Komentar opsional" style="margin-top: 10px;"></textarea>
+
+        <button type="button" id="submitSellerReviewBtn" class="send-offer-btn" style="margin-top: 14px; background: linear-gradient(135deg, #22c55e, #16a34a);">
+            Kirim Review
+        </button>
     </div>
 
     {{-- Input --}}
@@ -152,8 +171,9 @@
             <img src="{{ asset('images/icon_upload.png') }}" alt="Upload" />
           </button>
 
-          <button class="btn-attach-offer" id="attachOfferBtn" onclick="toggleOfferSelector()"
-            title="Attach offer"></button>
+          <button type="button" id="openOfferPickerBtn" class="open-offer-btn" title="Kirim Penawaran">
+            Kartu
+          </button>
 
           <textarea class="chat-input" id="chatInput" placeholder="Ketik pesan…" rows="1"></textarea>
 
@@ -221,6 +241,23 @@
     const auth = firebase.auth();
     const db   = firebase.database();
     const FB_TS = firebase.database.ServerValue.TIMESTAMP;
+    const FIREBASE_TOKEN = '{{ $firebaseToken ?? '' }}';
+    let isAuthenticatingWithToken = !!FIREBASE_TOKEN;
+
+    if (FIREBASE_TOKEN) {
+      auth.signInWithCustomToken(FIREBASE_TOKEN)
+        .then(() => {
+          console.log('Firebase authenticated successfully via custom token');
+          isAuthenticatingWithToken = false;
+        })
+        .catch(err => {
+          console.error('Firebase custom token authentication failed:', err);
+          isAuthenticatingWithToken = false;
+          if (!auth.currentUser) {
+            window.location.href = '{{ route("login") }}?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+          }
+        });
+    }
 
     // ── State ──
     let currentUser    = null;
@@ -252,11 +289,12 @@
     let usersRefreshTimer = null;
 
     // ── URL params ──
-    const params     = new URLSearchParams(window.location.search);
-    const initRoom   = params.get('room');
-    const initSeller = params.get('sellerId');
-    const initName   = decodeURIComponent(params.get('sellerName') || '');
-    const initCard   = params.get('cardId');
+    const params          = new URLSearchParams(window.location.search);
+    const initRoom        = params.get('room');
+    const initSeller      = params.get('sellerId');
+    const initName        = decodeURIComponent(params.get('sellerName') || '');
+    const initCard        = params.get('cardId');
+    const selectedOfferId = params.get('offerId');
 
     // ── CSRF token helper ──
     function getCsrfToken() {
@@ -275,6 +313,10 @@
       currentUser = user;
 
       if (!user) {
+        if (isAuthenticatingWithToken) {
+          // Sedang login dengan custom token, tunggu
+          return;
+        }
         // Belum login → redirect ke halaman login
         window.location.href = '{{ route("login") }}?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
         return;
@@ -421,6 +463,24 @@ Object.keys(knownRooms).forEach(rId => {
         nameCache[uid] = 'Anonymous';
       }
       return nameCache[uid];
+    }
+
+    // ── fetchCardName: get Pokémon TCG card name with cache ──
+    const cardNameCache = {};
+    async function fetchCardName(cardId) {
+      if (!cardId) return cardId || '—';
+      if (cardNameCache[cardId] !== undefined) return cardNameCache[cardId];
+      try {
+        const res = await fetch(`https://api.pokemontcg.io/v2/cards/${encodeURIComponent(cardId)}`, {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        cardNameCache[cardId] = data?.data?.name || cardId;
+      } catch (e) {
+        cardNameCache[cardId] = cardId; // fallback to cardId code
+      }
+      return cardNameCache[cardId];
     }
 
     // ── Load offers ──
@@ -785,6 +845,16 @@ Object.keys(knownRooms).forEach(rId => {
       container.appendChild(el);
     }
 
+    // Global active room info variables
+    let activeCardId = null;
+    let activeBuyerId = null;
+    let activeSellerId = null;
+    let activeRoomStatus = null;
+    let activeRoomMetaOff = null;
+
+    // ── Message listener de-dupe flag ──
+    let messagesListenerAttached = false;
+
     // ── openRoom ──
     async function openRoom(roomId, name, partnerId) {
       clearReplyPreview();
@@ -825,90 +895,152 @@ Object.keys(knownRooms).forEach(rId => {
 
       if (activeMsgOff) { activeMsgOff(); activeMsgOff = null; }
       if (activeTypingOff) { activeTypingOff(); activeTypingOff = null; }
+      if (activeRoomMetaOff) { activeRoomMetaOff(); activeRoomMetaOff = null; }
       
       // Reset typing state
       clearMyTyping();
 
-      const offerComposeCard = document.getElementById('offerComposeCard');
-      if (offerComposeCard) {
-        offerComposeCard.style.display = (initCard && roomId === initRoom) ? 'block' : 'none';
-      }
+      // Fetch or initialize room metadata!
+      const roomRef = db.ref(`chats/${roomId}`);
+      const metaHandler = roomRef.on('value', async snap => {
+        let roomData = snap.val();
+        
+        if (!roomData) {
+          // Initialize room metadata!
+          const buyerId = currentUser.uid;
+          const sellerId = partnerId;
+          const cardId = initCard || '';
+          
+          roomData = {
+              cardId: cardId,
+              buyerId: buyerId,
+              sellerId: sellerId,
+              participants: {
+                  [buyerId]: true,
+                  [sellerId]: true
+              },
+              status: 'active',
+              createdAt: firebase.database.ServerValue.TIMESTAMP,
+              updatedAt: firebase.database.ServerValue.TIMESTAMP
+          };
+          await roomRef.set(roomData);
+        } else {
+          // Check if updates are needed to ensure complete fields
+          const updates = {};
+          let needsUpdate = false;
+          
+          if (!roomData.buyerId) {
+              roomData.buyerId = currentUser.uid;
+              updates.buyerId = currentUser.uid;
+              needsUpdate = true;
+          }
+          if (!roomData.sellerId) {
+              roomData.sellerId = partnerId;
+              updates.sellerId = partnerId;
+              needsUpdate = true;
+          }
+          if (!roomData.cardId && initCard) {
+              roomData.cardId = initCard;
+              updates.cardId = initCard;
+              needsUpdate = true;
+          }
+          if (!roomData.participants) {
+              roomData.participants = {
+                  [currentUser.uid]: true,
+                  [partnerId]: true
+              };
+              updates.participants = roomData.participants;
+              needsUpdate = true;
+          }
+          if (!roomData.status) {
+              roomData.status = 'active';
+              updates.status = 'active';
+              needsUpdate = true;
+          }
+          
+          if (needsUpdate) {
+              await roomRef.update(updates);
+          }
+        }
+
+        activeCardId = roomData.cardId || null;
+        activeBuyerId = roomData.buyerId || null;
+        activeSellerId = roomData.sellerId || null;
+        activeRoomStatus = roomData.status || null;
+        
+        // Show/hide components based on room metadata and status
+        updateRoomUI();
+      });
+
+      activeRoomMetaOff = () => roomRef.off('value', metaHandler);
 
       const wrap = document.getElementById('chatMessages');
       wrap.innerHTML = '';
+      messagesListenerAttached = false;
 
       const msgsRef = db.ref(`chats/${roomId}/messages`).orderByChild('createdAt').limitToLast(100);
-      const handler = msgsRef.on('value', async snapshot => {
-        wrap.innerHTML = '';
-        let lastDate   = null;
-        const messages = [];
 
-        snapshot.forEach(child => {
-          const msg = { id: child.key, ...child.val() };
-          if (msg.deletedFor && currentUser && msg.deletedFor[currentUser.uid]) return;
-          messages.push(msg);
-        });
+      // ── child_added: render each message once ──
+      const addedHandler = msgsRef.on('child_added', async snapshot => {
+        const msgId = snapshot.key;
+        const msgData = snapshot.val();
 
-        const uids = [...new Set(messages.map(m => m.uid).filter(Boolean))];
-        await Promise.all([
-          Promise.all(uids.map(uid => fetchPfp(uid))),
-          Promise.all(uids.map(uid => fetchDisplayName(uid)))
-        ]);
+        console.log('[child_added] MSG:', msgId, 'type:', msgData?.type, msgData);
 
-        for (const m of messages) {
-          const msgDate = m.createdAt
-            ? new Date(m.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
-            : null;
-
-          if (msgDate && msgDate !== lastDate) {
-            appendDateSep(wrap, msgDate);
-            lastDate = msgDate;
-          }
-          appendMessage(wrap, m, partnerId);
+        // Skip if already rendered (safety guard)
+        if (document.getElementById(`msg-${msgId}`)) {
+          console.warn('[child_added] Skipping duplicate:', msgId);
+          return;
         }
+
+        const msg = { id: msgId, ...msgData };
+        if (msg.deletedFor && currentUser && msg.deletedFor[currentUser.uid]) return;
+
+        // Pre-fetch pfp and name for this sender
+        const uid = msg.senderId || msg.uid;
+        if (uid) {
+          await Promise.all([fetchPfp(uid), fetchDisplayName(uid)]);
+        }
+
+        console.log('[child_added] Rendering type:', msg.type, 'id:', msgId);
+        appendMessage(wrap, msg, partnerId);
         wrap.scrollTop = wrap.scrollHeight;
       });
-      const changeHandler = msgsRef.on('child_changed', snapshot => {
-        const msgId = snapshot.key;
-        const msg = snapshot.val();
-        const oldCard = document.querySelector(`.chat-offer-card[data-message-id="${msgId}"]`);
-        if (oldCard && msg.offer) {
-          const offer = msg.offer;
-          const isMine = msg.senderId === currentUser?.uid;
-          const status = offer.status || 'pending';
-          
-          // Update price
-          const priceEl = oldCard.querySelector('.chat-offer-price');
-          if (priceEl) priceEl.textContent = `$${offer.price || 0}`;
-          
-          // Update status meta
-          const metaSpans = oldCard.querySelectorAll('.chat-offer-meta span');
-          if (metaSpans.length >= 2) {
-            metaSpans[1].textContent = `Status: ${status.toUpperCase()}`;
-          }
 
-          // Update actions buttons
-          const actionsDiv = oldCard.querySelector('.chat-offer-actions');
-          if (actionsDiv) {
-            if (status !== 'done') {
-              const negoBtn = !isMine ? `<button type="button" class="chat-offer-nego-btn" data-message-id="${msgId}">Nego</button>` : '';
-              const doneBtn = `<button type="button" class="chat-offer-done-btn" data-message-id="${msgId}">Selesai</button>`;
-              actionsDiv.innerHTML = `${negoBtn}${doneBtn}`;
-            } else {
-              actionsDiv.className = 'chat-offer-actions done-state';
-              actionsDiv.style.color = '#22c55e';
-              actionsDiv.style.fontWeight = '800';
-              actionsDiv.style.fontSize = '0.85rem';
-              actionsDiv.style.padding = '4px 0';
-              actionsDiv.textContent = '✓ Transaksi Selesai';
-            }
+      // ── child_changed: replace existing card in-place ──
+      const changeHandler = msgsRef.on('child_changed', async snapshot => {
+        const msgId = snapshot.key;
+        const msg = { id: msgId, ...snapshot.val() };
+
+        // Pre-fetch pfp/name in case they're missing
+        const uid = msg.senderId || msg.uid;
+        if (uid) {
+          await Promise.all([fetchPfp(uid), fetchDisplayName(uid)]);
+        }
+
+        const oldEl = document.getElementById(`msg-${msgId}`);
+        if (oldEl) {
+          const tempDiv = document.createElement('div');
+          appendMessage(tempDiv, msg, partnerId);
+          if (tempDiv.firstElementChild) {
+            oldEl.replaceWith(tempDiv.firstElementChild);
           }
         }
       });
 
+      // ── child_removed: remove from DOM ──
+      const removedHandler = msgsRef.on('child_removed', snapshot => {
+        const el = document.getElementById(`msg-${snapshot.key}`);
+        if (el) el.remove();
+      });
+
+      messagesListenerAttached = true;
+
       activeMsgOff = () => {
-        msgsRef.off('value', handler);
+        msgsRef.off('child_added', addedHandler);
         msgsRef.off('child_changed', changeHandler);
+        msgsRef.off('child_removed', removedHandler);
+        messagesListenerAttached = false;
       };
 
       // Typing Indicator Listener
@@ -951,10 +1083,27 @@ Object.keys(knownRooms).forEach(rId => {
 
     // ── appendMessage ──
     function appendMessage(container, msg, partnerId) {
-      const isSelf    = msg.uid === currentUser?.uid;
-      const pfp       = pfpCache[msg.uid] || 'default';
+      if (msg.type === 'system') {
+        const el = document.createElement('div');
+        el.className = 'msg-row system';
+        el.style.display = 'flex';
+        el.style.justifyContent = 'center';
+        el.style.width = '100%';
+        el.style.margin = '10px 0';
+        el.innerHTML = `
+          <div style="background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.28); border-radius: 999px; padding: 6px 18px; font-size: 0.8rem; font-weight: 800; color: #c4b5fd; text-shadow: 0 0 8px rgba(168,85,247,0.3);">
+            ${escHtml(msg.text)}
+          </div>
+        `;
+        container.appendChild(el);
+        return;
+      }
+
+      const senderId = msg.senderId || msg.uid;
+      const isSelf    = senderId === currentUser?.uid;
+      const pfp       = pfpCache[senderId] || 'default';
       const avatarUrl = `/images/avatar/${pfp}.png`;
-      const displayName = nameCache[msg.uid] || 'Anonymous';
+      const displayName = nameCache[senderId] || 'Anonymous';
       const timeStr   = msg.createdAt
         ? new Date(msg.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
         : '';
@@ -972,7 +1121,7 @@ Object.keys(knownRooms).forEach(rId => {
           : (msg.replyTo.text || (msg.replyTo.imageUrl ? '📷 Foto' : '📎 File'));
         contentHtml += `
           <div class="msg-reply-preview" style="padding:6px 10px;background:rgba(255,255,255,0.05);border-left:2px solid var(--pink);border-radius:4px;margin-bottom:6px;font-size:0.7rem;">
-            <div style="color:var(--pink);margin-bottom:2px;">@${escHtml(msg.replyTo.displayName)}</div>
+            <div style="color:var(--pink);margin-bottom:2px;">@${escHtml(nameCache[msg.replyTo.uid] || 'Anonymous')}</div>
             <div style="color:var(--muted);opacity:0.8;">${escHtml(replyText)}</div>
           </div>
         `;
@@ -980,59 +1129,118 @@ Object.keys(knownRooms).forEach(rId => {
 
       if (msg.deletedForAll) {
         contentHtml = `<div class="msg-bubble deleted" style="opacity:0.5;font-style:italic;font-size:0.75rem;">🚫 Pesan telah dihapus</div>`;
-      } else if (msg.type === 'offer') {
-        const offer = msg.offer || {};
-        const isMine = msg.senderId === currentUser?.uid;
+      } else if (msg.type === 'offer' || (msg.offer && msg.type !== 'nego')) {
+        console.log('[appendMessage] Rendering OFFER card', msg.id, msg.offer);
+        const offer  = msg.offer || {};
+        const cardId = offer.cardId || msg.cardId || activeCardId || initCard || '';
         const status = offer.status || 'pending';
+        const isSeller = currentUser?.uid === activeSellerId;
+        const isBuyer  = currentUser?.uid === activeBuyerId;
+
+        const canSellerAction = isSeller && status === 'pending';
+        const canNego    = status !== 'done' && status !== 'rejected' && status !== 'cancelled';
+        const canComplete = (isBuyer || isSeller) && (status === 'accepted' || status === 'negotiating');
+
+        // Build card image URL from cardId (e.g. sv2-218 → https://images.pokemontcg.io/sv2/218.png)
+        const cardImgUrl = (function(cid) {
+          if (!cid) return '';
+          const parts = cid.split('-');
+          if (parts.length >= 2) {
+            const setId  = parts[0];
+            const number = parts.slice(1).join('-');
+            return `https://images.pokemontcg.io/${setId}/${number}.png`;
+          }
+          return '';
+        })(cardId);
+
         let actionButtonsHtml = '';
-        
-        if (status !== 'done') {
-          const negoBtn = !isMine ? `<button type="button" class="chat-offer-nego-btn" data-message-id="${msg.id}">Nego</button>` : '';
-          const doneBtn = `<button type="button" class="chat-offer-done-btn" data-message-id="${msg.id}">Selesai</button>`;
-          actionButtonsHtml = `
-            <div class="chat-offer-actions">
-              ${negoBtn}
-              ${doneBtn}
-            </div>
-          `;
+        if (status === 'done') {
+          actionButtonsHtml = `<div class="transaction-done-state" style="color:#22c55e;font-weight:800;font-size:0.85rem;padding:4px 0;">✓ Transaksi Selesai</div>`;
+        } else if (status === 'rejected') {
+          actionButtonsHtml = `<div class="transaction-rejected-state" style="color:#ef4444;font-weight:800;font-size:0.85rem;padding:4px 0;">✗ Transaksi Ditolak</div>`;
         } else {
-          actionButtonsHtml = `
-            <div class="chat-offer-actions done-state" style="color: #22c55e; font-weight: 800; font-size: 0.85rem; padding: 4px 0;">
-              ✓ Transaksi Selesai
-            </div>
-          `;
+          if (canSellerAction) {
+            actionButtonsHtml += `<button type="button" class="offer-accept-btn" data-message-id="${msg.id}">Terima</button>`;
+            actionButtonsHtml += `<button type="button" class="offer-reject-btn" data-message-id="${msg.id}">Tolak</button>`;
+          }
+          if (canNego) {
+            actionButtonsHtml += `<button type="button" class="offer-nego-btn" data-message-id="${msg.id}">Nego</button>`;
+          }
+          if (canComplete || status === 'accepted') {
+            actionButtonsHtml += `<button type="button" class="offer-done-btn" data-message-id="${msg.id}">Selesai</button>`;
+          }
+        }
+
+        const cardNameElId = `card-name-${msg.id}`;
+
+        contentHtml += `
+          <div class="transaction-offer-card" data-message-id="${msg.id}">
+
+              <div class="offer-card-preview">
+                  ${cardImgUrl ? `<img class="offer-card-img" src="${escHtml(cardImgUrl)}" alt="Card" onerror="this.style.display='none'">` : ''}
+                  <div class="offer-card-info">
+                      <span class="offer-card-code">${escHtml(cardId || '—')}</span>
+                      <span class="offer-card-name" id="${cardNameElId}">Memuat...</span>
+                  </div>
+              </div>
+
+              <div class="transaction-offer-top">
+                  <div>
+                      <span class="transaction-label">Offer Kartu</span>
+                      <h4>Penawaran Baru</h4>
+                  </div>
+                  <strong class="transaction-price">$${escHtml(String(offer.price || 0))}</strong>
+              </div>
+
+              <div class="transaction-meta">
+                  <span>Kondisi: ${escHtml(offer.condition || '-')}</span>
+                  <span class="status-${escHtml(status)}">${escHtml(status.toUpperCase())}</span>
+              </div>
+
+              ${(offer.note || offer.desc || offer.message) ? `<p class="transaction-note">${escHtml(offer.note || offer.desc || offer.message)}</p>` : ''}
+
+              <div class="transaction-actions">${actionButtonsHtml}</div>
+          </div>
+        `;
+
+        // Async-fetch card name and update DOM
+        if (cardId) {
+          fetchCardName(cardId).then(name => {
+            const el = document.getElementById(cardNameElId);
+            if (el) el.textContent = name;
+          });
+        }
+      } else if (msg.type === 'nego' || msg.nego) {
+        const nego = msg.nego || {};
+        const isMineNego = msg.senderId === currentUser?.uid || msg.uid === currentUser?.uid;
+        const status = nego.status || 'pending';
+
+        let negoActions = '';
+        if (status === 'deal') {
+            negoActions = `<div class="transaction-done-state" style="color:#22c55e;font-weight:800;font-size:0.85rem;padding:4px 0;">✓ Deal Disetujui</div>`;
+        } else if (!isMineNego && status === 'pending') {
+            negoActions = `<button type="button" class="nego-deal-btn" data-message-id="${msg.id}">Deal</button>`;
         }
 
         contentHtml += `
-          <div class="chat-offer-card" data-message-id="${msg.id}">
-              <div class="chat-offer-top">
+          <div class="transaction-nego-card" data-message-id="${msg.id}">
+              <div class="transaction-offer-top">
                   <div>
-                      <span class="chat-offer-label">Offer Kartu</span>
-                      <h4 class="chat-offer-title">Penawaran Baru</h4>
+                      <span class="transaction-label">Counter Offer</span>
+                      <h4>Nego Baru</h4>
                   </div>
-                  <strong class="chat-offer-price">
-                      $${escHtml(String(offer.price || 0))}
+                  <strong class="transaction-price">
+                      $${escHtml(String(nego.price || 0))}
                   </strong>
               </div>
-
-              <div class="chat-offer-meta">
-                  <span>Kondisi: ${escHtml(offer.condition || '-')}</span>
-                  <span>Status: ${escHtml(status.toUpperCase())}</span>
-              </div>
-
-              ${offer.message ? `<p class="chat-offer-note">${escHtml(offer.message)}</p>` : ''}
-              
-              ${actionButtonsHtml}
+              <p class="transaction-note">${isMineNego ? 'Anda mengajukan harga counter.' : 'Lawan bicara mengajukan harga counter.'}</p>
+              <div class="transaction-actions">${negoActions}</div>
           </div>
         `;
-      } else if (msg.type === 'nego') {
-        const nego = msg.nego || {};
-        const isMine = msg.senderId === currentUser?.uid;
+      } else if (msg.type === 'system') {
         contentHtml += `
-          <div class="chat-nego-card" style="border: 1px dashed rgba(139, 92, 246, 0.4); border-radius: 12px; padding: 10px 14px; background: rgba(139, 92, 246, 0.15); color: #fff; max-width: 320px; text-align: left;">
-            <div style="font-size: 0.75rem; color: #a78bfa; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Counter Offer / Nego</div>
-            <div style="font-size: 1.15rem; font-weight: 900; color: #4ade80; margin: 4px 0;">$${escHtml(String(nego.price || 0))}</div>
-            <div style="font-size: 0.7rem; color: rgba(255,255,255,0.7);">${isMine ? 'Anda mengajukan harga counter' : 'Lawan bicara mengajukan harga counter'}</div>
+          <div class="msg-bubble system" style="background:transparent;text-align:center;font-size:0.75rem;color:var(--muted);width:100%;margin:10px 0;">
+             ${escHtml(msg.text || '')}
           </div>
         `;
       } else if (msg.imageUrl) {
@@ -1094,54 +1302,38 @@ Object.keys(knownRooms).forEach(rId => {
       container.appendChild(el);
     }
 
-    // ── sendMessage ──
+    // ── sendMessage (text / file only — offers go via sendOfferMessage) ──
     async function sendMessage() {
       if (!currentUser || !activeRoomId) return;
       const input     = document.getElementById('chatInput');
       const text      = input.value.trim();
       const fileInput = document.getElementById('fileInput');
 
-      if (!text && !fileInput.files.length && !attachedOffer) return;
+      // Only proceed if there is actual text or a file
+      if (!text && !fileInput.files.length) return;
 
       input.value = '';
       autoResizeTextarea(input);
       document.getElementById('btnSend').classList.remove('active');
 
-      const myPfp = await fetchPfp(currentUser.uid);
-      let messageData = {
-        uid:         currentUser.uid,
-        displayName: currentUser.displayName || currentUser.email || 'Anonymous',
-        photoURL:    myPfp,
-        text:        text || '',
-        type:        'text',
-        createdAt:   Date.now(),
-      };
+      const receiverId = activePartnerId || initSeller;
+
+      let messageData = removeUndefined({
+        uid:        currentUser.uid,
+        senderId:   currentUser.uid,
+        receiverId: receiverId,
+        text:       text || '',
+        type:       'text',
+        createdAt:  firebase.database.ServerValue.TIMESTAMP,
+      });
 
       if (replyTo) {
-        messageData.replyTo = {
-          id:          replyTo.id,
-          uid:         replyTo.uid,
-          displayName: replyTo.displayName,
-          text:        replyTo.text || '',
-          imageUrl:    replyTo.imageUrl || null,
-        };
-      }
-
-      if (attachedOffer) {
-        messageData.offer = {
-          offerId:      attachedOffer.id,
-          cardId:       initCard,
-          uid:          attachedOffer.uid,
-          displayName:  attachedOffer.displayName,
-          price:        attachedOffer.price,
-          condition:    attachedOffer.condition,
-          desc:         attachedOffer.desc,
-          status:       'pending',
-          negotiations: []
-        };
-        if (!messageData.text) {
-          messageData.text = `Menambahkan offer: ${attachedOffer.desc || attachedOffer.price || 'Penawaran'}`;
-        }
+        messageData.replyTo = removeUndefined({
+          id:       replyTo.id,
+          uid:      replyTo.uid,
+          text:     replyTo.text || '',
+          imageUrl: replyTo.imageUrl || null,
+        });
       }
 
       if (fileInput.files.length > 0) {
@@ -1379,32 +1571,31 @@ Object.keys(knownRooms).forEach(rId => {
       if (!counterPrice || counterPrice <= 0) { alert('Masukkan harga counter offer yang valid.'); return; }
 
       try {
-        const negoEntry = {
-          uid:         currentUser.uid,
-          displayName: currentUser.displayName || currentUser.email || 'Anonymous',
-          price:       counterPrice,
-          message:     counterMessage,
-          timestamp:   Date.now()
-        };
+        // Push a nego-type message (no displayName/photoURL)
+        const receiverId = currentUser.uid === activeSellerId
+          ? (activeBuyerId || activePartnerId)
+          : (activeSellerId || activePartnerId);
 
-        const msgRef     = db.ref(`chats/${activeRoomId}/messages/${currentNegoOffer.id}`);
-        const snapshot   = await msgRef.once('value');
-        const currentMsg = snapshot.val();
-        if (!currentMsg?.offer) { alert('Offer tidak ditemukan.'); return; }
+        await db.ref(`chats/${activeRoomId}/messages`).push(removeUndefined({
+          type:       'nego',
+          uid:        currentUser.uid,
+          senderId:   currentUser.uid,
+          receiverId: receiverId,
+          cardId:     activeCardId || initCard,
+          createdAt:  firebase.database.ServerValue.TIMESTAMP,
+          nego: {
+            relatedOfferId: currentNegoOffer.id,
+            price:          counterPrice,
+            note:           counterMessage || null,
+            status:         'pending'
+          }
+        }));
 
-        const negotiations = [...(currentMsg.offer.negotiations || []), negoEntry];
-        await msgRef.child('offer').update({ status: 'negotiating', negotiations, lastNego: negoEntry });
+        // Update the original offer status to 'negotiating'
+        await db.ref(`chats/${activeRoomId}/messages/${currentNegoOffer.id}/offer`)
+          .update({ status: 'negotiating' });
 
-        const myPfp = await fetchPfp(currentUser.uid);
-        await db.ref(`chats/${activeRoomId}/messages`).push({
-          uid:         currentUser.uid,
-          displayName: currentUser.displayName || currentUser.email || 'Anonymous',
-          photoURL:    myPfp,
-          text:        `💬 Counter offer: $${counterPrice}${counterMessage ? ' - ' + counterMessage : ''}`,
-          type:        'text',
-          createdAt:   Date.now(),
-        });
-
+        await updateRoomLastMsg(`Nego: $${counterPrice}`);
         closeNegoModal();
       } catch (e) {
         console.error('submitNego error:', e);
@@ -1412,26 +1603,243 @@ Object.keys(knownRooms).forEach(rId => {
       }
     }
 
-    async function acceptOffer(msg) {
-      if (!confirm('Setuju dengan penawaran ini?')) return;
-      if (!msg.offer || !activeRoomId) return;
+    async function updateRoomLastMsg(previewText) {
+      if (!activeRoomId || !currentUser) return;
+      const ts = Date.now();
+      // Only write to current user's own user_rooms — Firebase rules deny writes to other users' paths
       try {
-        await db.ref(`chats/${activeRoomId}/messages/${msg.id}/offer`)
-          .update({ status: 'accepted', acceptedBy: currentUser.uid, acceptedAt: Date.now() });
+        await db.ref(`user_rooms/${currentUser.uid}/${activeRoomId}`)
+          .update({ lastMsg: previewText, lastTs: ts });
+      } catch (e) {
+        console.warn('[updateRoomLastMsg] Failed (non-fatal):', e.message);
+      }
+    }
 
-        const myPfp = await fetchPfp(currentUser.uid);
-        await db.ref(`chats/${activeRoomId}/messages`).push({
-          uid:         currentUser.uid,
-          displayName: currentUser.displayName || currentUser.email || 'Anonymous',
-          photoURL:    myPfp,
-          text:        `✅ Menyetujui penawaran $${msg.offer.price}`,
-          type:        'text',
-          createdAt:   Date.now(),
+    function updateRoomUI() {
+      const openOfferBtn = document.getElementById('openOfferComposerBtn');
+      if (openOfferBtn) {
+        const isBuyer = (activeBuyerId === currentUser?.uid);
+        const isActive = (activeRoomStatus === 'active');
+        if (activeCardId && isActive && isBuyer) {
+          openOfferBtn.style.display = 'block';
+        } else {
+          openOfferBtn.style.display = 'none';
+        }
+      }
+      
+      checkShowReviewBox();
+    }
+
+    async function checkShowReviewBox() {
+      const box = document.getElementById('sellerReviewBox');
+      if (!box) return;
+      
+      if (!currentUser || !activeRoomId) {
+        box.style.display = 'none';
+        return;
+      }
+      
+      if (activeBuyerId !== currentUser.uid || activeRoomStatus !== 'done') {
+        box.style.display = 'none';
+        return;
+      }
+      
+      try {
+        const transSnap = await db.ref('transactions').orderByChild('roomId').equalTo(activeRoomId).once('value');
+        let transactionId = null;
+        
+        transSnap.forEach(child => {
+          const trans = child.val();
+          if (trans.status === 'done' && trans.buyerId === currentUser.uid) {
+            transactionId = child.key;
+          }
         });
+        
+        if (transactionId) {
+          const reviewSnap = await db.ref('reviews').orderByChild('transactionId').equalTo(transactionId).once('value');
+          if (reviewSnap.exists()) {
+            box.style.display = 'none';
+          } else {
+            box.style.display = 'block';
+            box.classList.remove('hidden');
+          }
+        } else {
+          box.style.display = 'none';
+        }
+      } catch (e) {
+        console.error('Error checking review box status:', e);
+        box.style.display = 'none';
+      }
+    }
+
+    async function submitSellerReview() {
+      if (!currentUser || !activeRoomId) return;
+      
+      try {
+        const transSnap = await db.ref('transactions').orderByChild('roomId').equalTo(activeRoomId).once('value');
+        let transactionId = null;
+        let sellerId = null;
+        
+        transSnap.forEach(child => {
+          const trans = child.val();
+          if (trans.status === 'done' && trans.buyerId === currentUser.uid) {
+            transactionId = child.key;
+            sellerId = trans.sellerId;
+          }
+        });
+        
+        if (!transactionId || !sellerId) {
+          alert('Transaksi selesai tidak ditemukan.');
+          return;
+        }
+        
+        if (sellerId === currentUser.uid) {
+          alert('Anda tidak bisa memberikan review pada diri sendiri.');
+          return;
+        }
+
+        const ratingInput = document.getElementById('sellerRatingInput');
+        const commentInput = document.getElementById('sellerReviewComment');
+        const rating = Number(ratingInput?.value || 5);
+        const comment = commentInput?.value?.trim() || '';
+
+        const reviewRef = db.ref('reviews').push();
+        await reviewRef.set(removeUndefined({
+            transactionId: transactionId,
+            reviewerId: currentUser.uid,
+            sellerId: sellerId,
+            rating: rating,
+            comment: comment,
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        }));
+
+        alert('Terima kasih atas review Anda!');
+        
+        const box = document.getElementById('sellerReviewBox');
+        if (box) {
+          box.style.display = 'none';
+          box.classList.add('hidden');
+        }
+
+        await recalculateSellerReputation(sellerId);
+
+      } catch (error) {
+        console.error('submitSellerReview error:', error);
+        alert('Gagal mengirim review.');
+      }
+    }
+
+    async function recalculateSellerReputation(sellerId) {
+      if (!sellerId) return;
+      
+      try {
+        const reviewsSnap = await db.ref('reviews').orderByChild('sellerId').equalTo(sellerId).once('value');
+        let totalReviews = 0;
+        let sumRating = 0;
+        
+        reviewsSnap.forEach(child => {
+          const rev = child.val();
+          totalReviews++;
+          sumRating += Number(rev.rating || 0);
+        });
+        
+        const averageRating = totalReviews > 0 ? (sumRating / totalReviews) : 0;
+        
+        const transSnap = await db.ref('transactions').orderByChild('sellerId').equalTo(sellerId).once('value');
+        let totalTransactions = 0;
+        
+        transSnap.forEach(child => {
+          const trans = child.val();
+          if (trans.status === 'done') {
+            totalTransactions++;
+          }
+        });
+        
+        let badge = 'New Seller';
+        if (totalTransactions >= 20 && averageRating >= 4.7) {
+          badge = 'Trusted Seller';
+        } else if (totalTransactions >= 5 && averageRating >= 4.3) {
+          badge = 'Good Seller';
+        } else if (totalTransactions >= 1) {
+          badge = 'Active Seller';
+        }
+        
+        await db.ref(`users/${sellerId}`).update({
+          rating: averageRating,
+          totalReviews: totalReviews,
+          totalTransactions: totalTransactions,
+          sellerReputation: badge,
+          updatedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+        
+        console.log(`Reputation updated for ${sellerId}: Rating = ${averageRating}, Reviews = ${totalReviews}, Transactions = ${totalTransactions}, Badge = ${badge}`);
+      } catch (error) {
+        console.error('Error recalculating seller reputation:', error);
+      }
+    }
+
+    async function acceptOffer(messageId) {
+      if (!confirm('Terima offer ini?')) return;
+      try {
+        await db.ref(`chats/${activeRoomId}/messages/${messageId}/offer`).update({
+          status: 'accepted',
+          acceptedAt: firebase.database.ServerValue.TIMESTAMP,
+          acceptedBy: currentUser.uid
+        });
+
+        await db.ref(`chats/${activeRoomId}/currentOffer`).update({
+          status: 'accepted',
+          updatedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        await db.ref(`chats/${activeRoomId}/messages`).push(removeUndefined({
+          type:      'system',
+          senderId:  currentUser.uid,
+          text:      'Offer diterima.',
+          createdAt: firebase.database.ServerValue.TIMESTAMP
+        }));
+
+        await updateRoomLastMsg('Offer diterima');
       } catch (e) {
         console.error('acceptOffer error:', e);
-        alert('Gagal menerima penawaran.');
+        alert('Gagal menerima offer.');
       }
+    }
+
+    async function rejectOffer(messageId) {
+      if (!confirm('Tolak offer ini?')) return;
+      try {
+        await db.ref(`chats/${activeRoomId}/messages/${messageId}/offer`).update({
+          status: 'rejected',
+          rejectedAt: firebase.database.ServerValue.TIMESTAMP,
+          rejectedBy: currentUser.uid
+        });
+
+        await db.ref(`chats/${activeRoomId}/messages`).push(removeUndefined({
+          type:      'system',
+          senderId:  currentUser.uid,
+          text:      'Offer ditolak.',
+          createdAt: firebase.database.ServerValue.TIMESTAMP
+        }));
+
+        await updateRoomLastMsg('Offer ditolak');
+      } catch (e) {
+        console.error('rejectOffer error:', e);
+        alert('Gagal menolak offer.');
+      }
+    }
+
+    function escapeHTML(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    function escapeAttr(value) {
+        return escapeHTML(value);
     }
 
     function removeUndefined(value) {
@@ -1448,138 +1856,478 @@ Object.keys(knownRooms).forEach(rId => {
       return value;
     }
 
-    async function sendOfferMessage() {
-      try {
-        if (!currentUser || !currentUser.uid) {
-          alert('Kamu harus login.');
-          return;
+    async function getUserProfile(uid) {
+        if (!uid) {
+            return { username: 'User', handle: '@user', pfp: 'default', role: 'user' };
+        }
+        if (window.userCache && window.userCache[uid]) {
+            return window.userCache[uid];
+        }
+        window.userCache = window.userCache || {};
+        const snapshot = await db.ref(`users/${uid}`).once('value');
+        const user = snapshot.val() || {};
+        const nameVal = user.name || 'User';
+        const cleanHandle = nameVal.toLowerCase().replace(/\s+/g, '');
+        const profile = {
+            username: nameVal,
+            handle: user.handle || `@${cleanHandle}`,
+            pfp: user.pfp || 'default',
+            role: user.role || 'user'
+        };
+        window.userCache[uid] = profile;
+        return profile;
+    }
+
+    function formatOfferDate(timestamp) {
+        if (!timestamp) return 'Tanggal tidak diketahui';
+        const date = new Date(Number(timestamp));
+        return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    // Helper to build Card Image URL
+    function getCardImageUrl(cid) {
+        if (!cid) return '';
+        const parts = cid.split('-');
+        if (parts.length >= 2) {
+            const setId  = parts[0];
+            const number = parts.slice(1).join('-');
+            return `https://images.pokemontcg.io/${setId}/${number}.png`;
+        }
+        return '';
+    }
+
+    // ── Load selected offer untuk picker ──
+    async function loadSelectedOfferForPicker() {
+        const offerPickerList = document.getElementById('offerPickerList');
+        const cardId = activeCardId || initCard;
+        if (!cardId || !selectedOfferId) {
+            offerPickerList.innerHTML = `
+                <div class="offer-picker-empty">
+                    Data penawaran tidak lengkap.
+                </div>
+            `;
+            return;
         }
 
-        const sellerId = activePartnerId || initSeller;
-        if (!activeRoomId || !sellerId || !initCard) {
-          alert('Data chat tidak lengkap.');
-          return;
+        offerPickerList.innerHTML = `
+            <div class="offer-picker-loading">
+                Memuat penawaran...
+            </div>
+        `;
+
+        try {
+            const offerSnap = await db.ref(`cards/${cardId}/offers/${selectedOfferId}`).once('value');
+            const offer = offerSnap.val();
+
+            if (!offer) {
+                offerPickerList.innerHTML = `
+                    <div class="offer-picker-empty">
+                        Penawaran tidak ditemukan atau sudah dihapus.
+                    </div>
+                `;
+                return;
+            }
+
+            const sellerId = activeSellerId || activePartnerId || initSeller;
+            if (offer.uid !== sellerId) {
+                console.error('Offer seller mismatch:', {
+                    offerUid: offer.uid,
+                    sellerId: sellerId
+                });
+
+                offerPickerList.innerHTML = `
+                    <div class="offer-picker-empty">
+                        Penawaran ini tidak cocok dengan seller.
+                    </div>
+                `;
+                return;
+            }
+
+            const seller = await getUserProfile(offer.uid);
+            renderSelectedOfferItem(selectedOfferId, offer, seller);
+
+        } catch (error) {
+            console.error('loadSelectedOfferForPicker error:', error);
+            offerPickerList.innerHTML = `
+                <div class="offer-picker-empty">
+                    Gagal memuat penawaran.
+                </div>
+            `;
         }
+    }
 
-        const priceInput     = document.getElementById('offerPriceInput');
-        const conditionInput = document.getElementById('offerConditionInput');
-        const noteInput      = document.getElementById('offerNoteInput');
+    function renderSelectedOfferItem(offerId, offer, seller) {
+        const createdDate = formatOfferDate(offer.createdAt);
+        const cardId = activeCardId || initCard;
+        const cardImgUrl = getCardImageUrl(cardId);
 
-        const price     = Number(priceInput?.value || 0);
-        const condition = conditionInput?.value?.trim() || '';
-        const note      = noteInput?.value?.trim() || '';
+        const offerPickerList = document.getElementById('offerPickerList');
+        offerPickerList.innerHTML = '';
+
+        const el = document.createElement('div');
+        el.className = 'offer-picker-item single-offer';
+        el.dataset.offerId = offerId;
+        el.dataset.sellerUid = offer.uid || '';
+
+        el.innerHTML = `
+            <div class="offer-picker-card-left">
+                ${cardImgUrl ? `<img class="offer-picker-card-img" src="${escapeAttr(cardImgUrl)}" alt="Card" onerror="this.style.display='none'">` : ''}
+            </div>
+            <div class="offer-picker-content-right">
+                <div class="offer-picker-seller">
+                    <img class="offer-picker-avatar"
+                         src="/images/avatar/${escapeAttr(seller.pfp || 'default')}.png"
+                         onerror="this.src='/images/avatar/default.png'"
+                         alt="${escapeAttr(seller.username || 'User')}">
+
+                    <div class="offer-picker-seller-info">
+                        <strong>${escapeHTML(seller.username || 'User')}</strong>
+                        <span>${escapeHTML(seller.handle || '@user')}</span>
+                    </div>
+
+                    <time class="offer-picker-date">
+                        ${escapeHTML(createdDate)}
+                    </time>
+                </div>
+
+                <div class="offer-picker-main">
+                    <div class="offer-picker-price">
+                        $${escapeHTML(String(offer.price || 0))}
+                    </div>
+
+                    <div class="offer-picker-detail">
+                        <strong>${escapeHTML(offer.condition || 'Kondisi tidak diisi')}</strong>
+                        <p>${escapeHTML(offer.desc || offer.message || 'Tidak ada deskripsi')}</p>
+                    </div>
+                </div>
+
+                <div class="offer-picker-footer">
+                    <button type="button" class="offer-picker-send-btn">
+                        Kirim Penawaran Ini
+                    </button>
+                </div>
+            </div>
+        `;
+
+        el.querySelector('.offer-picker-send-btn').addEventListener('click', function () {
+            sendSelectedOfferToChat(offerId, offer);
+        });
+
+        offerPickerList.appendChild(el);
+    }
+
+    async function sendSelectedOfferToChat(offerId, offer) {
+        try {
+            if (!currentUser?.uid) {
+                alert('Kamu harus login.');
+                return;
+            }
+
+            const roomId   = activeRoomId || initRoom;
+            const sellerId = activeSellerId || activePartnerId || initSeller;
+            const buyerId  = activeBuyerId  || currentUser.uid;
+            const cardId   = activeCardId || initCard;
+
+            if (!roomId || !sellerId || !cardId || !selectedOfferId) {
+                alert('Data chat tidak lengkap.');
+                console.error({
+                    roomId,
+                    sellerId,
+                    cardId,
+                    selectedOfferId
+                });
+                return;
+            }
+
+            if (offerId !== selectedOfferId) {
+                alert('Offer tidak valid.');
+                return;
+            }
+
+            if (offer.uid !== sellerId) {
+                alert('Offer ini bukan milik seller yang sedang kamu hubungi.');
+                return;
+            }
+
+            const payload = removeUndefined({
+                type: 'offer',
+                senderId: currentUser.uid,
+                receiverId: sellerId,
+                cardId: cardId,
+                createdAt: firebase.database.ServerValue.TIMESTAMP,
+                offer: {
+                    cardId: cardId,
+                    offerId: selectedOfferId,
+                    sellerUid: offer.uid,
+                    price: Number(offer.price || 0),
+                    condition: offer.condition || '',
+                    desc: offer.desc || offer.message || '',
+                    status: 'pending'
+                }
+            });
+
+            console.log('SEND SELECTED OFFER:', payload);
+
+            await db.ref(`chats/${roomId}/messages`).push(payload);
+
+            await db.ref(`chats/${roomId}`).update(removeUndefined({
+                cardId: cardId,
+                buyerId: buyerId,
+                sellerId: sellerId,
+                status: 'active',
+                currentOffer: {
+                    cardId: cardId,
+                    offerId: selectedOfferId,
+                    sellerUid: offer.uid,
+                    price: Number(offer.price || 0),
+                    condition: offer.condition || '',
+                    desc: offer.desc || offer.message || '',
+                    status: 'pending'
+                },
+                lastMessage: 'Penawaran dikirim',
+                lastMessageAt: firebase.database.ServerValue.TIMESTAMP,
+                updatedAt: firebase.database.ServerValue.TIMESTAMP,
+                [`participants/${currentUser.uid}`]: true,
+                [`participants/${sellerId}`]: true
+            }));
+
+            // Sync local vars
+            if (!activeBuyerId)  activeBuyerId  = buyerId;
+            if (!activeSellerId) activeSellerId = sellerId;
+            if (!activeCardId)   activeCardId   = cardId;
+
+            const offerPicker = document.getElementById('offerPicker');
+            if (offerPicker) {
+                offerPicker.style.display = 'none';
+                offerPicker.classList.add('hidden');
+            }
+
+            await updateRoomLastMsg('Penawaran baru diajukan');
+
+        } catch (error) {
+            console.error('sendSelectedOfferToChat error:', error);
+            alert('Gagal mengirim penawaran.');
+        }
+    }
+
+    // ── Fungsi nego ──
+    async function negotiateOffer(messageId) {
+        const newPrice = prompt('Masukkan harga nego:');
+
+        if (!newPrice) return;
+
+        const price = Number(newPrice);
 
         if (!price || price <= 0) {
-          alert('Masukkan harga offer yang valid.');
-          return;
+            alert('Harga nego tidak valid.');
+            return;
+        }
+        
+        const sellerId = activeSellerId || activePartnerId || initSeller;
+        const buyerId  = activeBuyerId  || currentUser.uid;
+
+        const payload = removeUndefined({
+            type: 'nego',
+            senderId: currentUser.uid,
+            receiverId: currentUser.uid === sellerId ? buyerId : sellerId,
+            cardId: activeCardId || initCard,
+            createdAt: firebase.database.ServerValue.TIMESTAMP,
+            nego: {
+                relatedOfferMessageId: messageId,
+                price: price,
+                status: 'pending'
+            }
+        });
+
+        await db.ref(`chats/${activeRoomId}/messages`).push(payload);
+
+        await db.ref(`chats/${activeRoomId}/messages/${messageId}/offer/status`).set('negotiating');
+        await db.ref(`chats/${activeRoomId}/currentOffer/status`).set('negotiating');
+        await updateRoomLastMsg(`Nego: $${price}`);
+    }
+
+    // ── Deal Nego ──
+    async function dealNego(messageId) {
+        if (!confirm('Apakah kamu yakin menerima harga counter (deal)?')) return;
+        
+        const negoSnap = await db.ref(`chats/${activeRoomId}/messages/${messageId}/nego`).once('value');
+        const nego = negoSnap.val();
+
+        if (!nego) {
+            alert('Data nego tidak ditemukan.');
+            return;
         }
 
-        const payload = removeUndefined({
-          type:       'offer',
-          uid:        currentUser.uid,
-          senderId:   currentUser.uid,
-          receiverId: sellerId,
-          cardId:     initCard,
-          createdAt:  firebase.database.ServerValue.TIMESTAMP,
-          offer: {
-            cardId:    initCard,
-            price:     price,
-            condition: condition,
-            message:   note,
-            status:    'pending'
-          }
+        const price = Number(nego.price || 0);
+
+        if (!price || price <= 0) {
+            alert('Harga nego tidak valid.');
+            return;
+        }
+
+        await db.ref(`chats/${activeRoomId}/messages/${messageId}/nego`).update({
+            status: 'deal',
+            dealAt: firebase.database.ServerValue.TIMESTAMP,
+            dealBy: currentUser.uid
         });
 
-        await db.ref(`chats/${activeRoomId}/messages`).push(payload);
-
-        priceInput.value     = '';
-        conditionInput.value = '';
-        noteInput.value      = '';
-
-        const preview = `Ajukan offer: $${price}`;
-        await db.ref(`user_rooms/${currentUser.uid}/${activeRoomId}`)
-          .update({ lastMsg: preview, lastTs: Date.now() });
-
-      } catch (error) {
-        console.error('sendOfferMessage error:', error);
-        alert('Gagal mengirim offer.');
-      }
-    }
-
-    async function negotiateOffer(messageId) {
-      const newPrice = prompt('Masukkan harga nego:');
-      if (!newPrice) return;
-
-      const price = Number(newPrice);
-      if (!price || price <= 0) {
-        alert('Harga tidak valid.');
-        return;
-      }
-
-      try {
-        const partnerId = activePartnerId || initSeller || 'partner';
-        const payload = removeUndefined({
-          type:       'nego',
-          uid:        currentUser.uid,
-          senderId:   currentUser.uid,
-          receiverId: partnerId,
-          cardId:     initCard || 'card',
-          createdAt:  firebase.database.ServerValue.TIMESTAMP,
-          nego: {
-            relatedOfferId: messageId,
-            price:          price,
-            status:         'pending'
-          }
+        await db.ref(`chats/${activeRoomId}/currentOffer`).update({
+            price: price,
+            status: 'accepted',
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
         });
 
-        await db.ref(`chats/${activeRoomId}/messages`).push(payload);
-        await db.ref(`chats/${activeRoomId}/messages/${messageId}/offer/status`).set('negotiating');
+        if (nego.relatedOfferMessageId) {
+            await db.ref(`chats/${activeRoomId}/messages/${nego.relatedOfferMessageId}/offer`).update({
+                price: price,
+                status: 'accepted',
+                updatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+        }
 
-        const preview = `Nego harga baru: $${price}`;
-        await db.ref(`user_rooms/${currentUser.uid}/${activeRoomId}`)
-          .update({ lastMsg: preview, lastTs: Date.now() });
-
-      } catch (error) {
-        console.error('negotiateOffer error:', error);
-        alert('Gagal mengirim nego.');
-      }
+        await db.ref(`chats/${activeRoomId}/messages`).push(removeUndefined({
+            type: 'system',
+            senderId: currentUser.uid,
+            text: `Deal di harga $${price}`,
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        }));
+        
+        await updateRoomLastMsg(`Deal: $${price}`);
     }
 
-    async function completeOffer(messageId) {
-      if (!confirm('Tandai offer ini sebagai selesai?')) return;
+    // ── Selesai 2 Arah ──
+    async function requestCompleteTransaction(messageId) {
+        const isBuyer = currentUser.uid === activeBuyerId;
+        const isSeller = currentUser.uid === activeSellerId;
 
-      try {
-        await db.ref(`chats/${activeRoomId}/messages/${messageId}/offer/status`).set('done');
-        await db.ref(`chats/${activeRoomId}/messages/${messageId}/offer/completedAt`).set(firebase.database.ServerValue.TIMESTAMP);
-        await db.ref(`chats/${activeRoomId}/messages/${messageId}/offer/completedBy`).set(currentUser.uid);
+        if (!isBuyer && !isSeller) {
+            alert('Kamu bukan peserta transaksi.');
+            return;
+        }
 
-        const preview = `Transaksi selesai`;
-        await db.ref(`user_rooms/${currentUser.uid}/${activeRoomId}`)
-          .update({ lastMsg: preview, lastTs: Date.now() });
-      } catch (error) {
-        console.error('completeOffer error:', error);
-        alert('Gagal menyelesaikan offer.');
-      }
+        const update = {
+            requested: true,
+            requestedAt: firebase.database.ServerValue.TIMESTAMP,
+            requestedBy: currentUser.uid
+        };
+
+        if (isBuyer) {
+            update.buyerConfirmed = true;
+        }
+
+        if (isSeller) {
+            update.sellerConfirmed = true;
+        }
+
+        await db.ref(`chats/${activeRoomId}/completion`).update(update);
+
+        await db.ref(`chats/${activeRoomId}/messages`).push(removeUndefined({
+            type: 'system',
+            senderId: currentUser.uid,
+            text: 'Salah satu pihak meminta transaksi diselesaikan. Menunggu konfirmasi pihak lain.',
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        }));
+
+        await checkTransactionCompletion(messageId);
     }
 
-    // Bind event send offer & click handler
-    document.addEventListener('DOMContentLoaded', () => {
-      const btn = document.getElementById('sendOfferBtn');
-      if (btn) {
-        btn.addEventListener('click', sendOfferMessage);
-      }
-    });
+    async function checkTransactionCompletion(messageId) {
+        const completionSnap = await db.ref(`chats/${activeRoomId}/completion`).once('value');
+        const completion = completionSnap.val() || {};
+
+        if (!completion.buyerConfirmed || !completion.sellerConfirmed) {
+            return; // Belum komplit
+        }
+
+        const currentOfferSnap = await db.ref(`chats/${activeRoomId}/currentOffer`).once('value');
+        const currentOffer = currentOfferSnap.val() || {};
+
+        const transactionRef = db.ref('transactions').push();
+
+        await transactionRef.set(removeUndefined({
+            roomId: activeRoomId,
+            cardId: activeCardId || initCard,
+            buyerId: activeBuyerId,
+            sellerId: activeSellerId,
+            finalPrice: Number(currentOffer.price || 0),
+            condition: currentOffer.condition || '',
+            status: 'done',
+            createdAt: firebase.database.ServerValue.TIMESTAMP,
+            completedAt: firebase.database.ServerValue.TIMESTAMP
+        }));
+
+        await db.ref(`chats/${activeRoomId}`).update({
+            status: 'done',
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        await db.ref(`chats/${activeRoomId}/completion`).update({
+            completedAt: firebase.database.ServerValue.TIMESTAMP,
+            transactionId: transactionRef.key
+        });
+        
+        if (messageId) {
+            await db.ref(`chats/${activeRoomId}/messages/${messageId}/offer`).update({
+                status: 'done',
+                updatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+        }
+
+        await db.ref(`chats/${activeRoomId}/messages`).push(removeUndefined({
+            type: 'system',
+            senderId: currentUser.uid,
+            text: 'Transaksi selesai. Kedua pihak telah mengonfirmasi.',
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        }));
+        
+        await updateRoomLastMsg('Transaksi selesai');
+    }
+
+    // ── Event binding and delegated listeners ──
+    (function bindOfferAndReviewButtons() {
+        const offerPicker = document.getElementById('offerPicker');
+        const openOfferPickerBtn = document.getElementById('openOfferPickerBtn');
+        const closeOfferPickerBtn = document.getElementById('closeOfferPickerBtn');
+
+        if (openOfferPickerBtn) {
+            openOfferPickerBtn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                if (offerPicker) {
+                    offerPicker.style.display = 'block';
+                    offerPicker.classList.remove('hidden');
+                    await loadSelectedOfferForPicker();
+                }
+            });
+        }
+
+        if (closeOfferPickerBtn) {
+            closeOfferPickerBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (offerPicker) {
+                    offerPicker.style.display = 'none';
+                    offerPicker.classList.add('hidden');
+                }
+            });
+        }
+
+        const reviewBtn = document.getElementById('submitSellerReviewBtn');
+        if (reviewBtn) {
+            reviewBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                submitSellerReview();
+            });
+        }
+    })();
 
     document.addEventListener('click', function(e) {
-      const negoBtn = e.target.closest('.chat-offer-nego-btn');
-      const doneBtn = e.target.closest('.chat-offer-done-btn');
+        const negoBtn = e.target.closest('.offer-nego-btn');
+        const doneBtn = e.target.closest('.offer-done-btn');
+        const dealBtn = e.target.closest('.nego-deal-btn');
 
-      if (negoBtn) {
-        negotiateOffer(negoBtn.dataset.messageId);
-      }
-      if (doneBtn) {
-        completeOffer(doneBtn.dataset.messageId);
-      }
+        if (negoBtn) { e.preventDefault(); negotiateOffer(negoBtn.dataset.messageId); }
+        if (doneBtn) { e.preventDefault(); requestCompleteTransaction(doneBtn.dataset.messageId); }
+        if (dealBtn) { e.preventDefault(); dealNego(dealBtn.dataset.messageId); }
     });
 
     // ── Upload Cloudinary ──

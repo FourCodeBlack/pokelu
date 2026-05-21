@@ -17,30 +17,30 @@
         <h1>Edit Profile</h1>
 
         <form action="{{ route('profile.update') }}" method="POST">
-        @csrf
+            @csrf
 
-        <div class="mb-3">
-            <label>Name</label>
-            <input type="text" name="name" class="form-control" value="{{ old('name', $data['name'] ?? '') }}">
-        </div>
-
-        <div class="mb-3">
-            <label>Avatar</label>
-
-            <div class="d-flex gap-3 flex-wrap mt-2">
-                @foreach (['pfp1', 'pfp2', 'pfp3','pfp4','pfp5','pfp6','pfp7','pfp8'] as $avatar)
-                    <label class="avatar-option">
-                        <input type="radio" name="pfp" value="{{ $avatar }}" class="d-none" {{ ($data['pfp'] ?? 'default') == $avatar ? 'checked' : '' }}>
-
-                        <img src="{{ asset('images/avatar/' . $avatar . '.png') }}" width="80" style=" border-radius:50%;">
-                    </label>
-                @endforeach
+            <div class="mb-3">
+                <label>Name</label>
+                <input type="text" name="name" class="form-control" value="{{ old('name', $data['name'] ?? '') }}">
             </div>
-        </div>
 
-        <button class="btn btn-primary" type="submit">
-            Save
-        </button>
+            <div class="mb-3">
+                <label>Avatar</label>
+
+                <div class="d-flex gap-3 flex-wrap mt-2">
+                    @foreach (['pfp1', 'pfp2', 'pfp3', 'pfp4', 'pfp5', 'pfp6', 'pfp7', 'pfp8', 'pfp9', 'pfp10', 'pfp11'] as $avatar)
+                        <label class="avatar-option">
+                            <input type="radio" name="pfp" value="{{ $avatar }}" class="d-none" {{ ($data['pfp'] ?? 'default') == $avatar ? 'checked' : '' }}>
+
+                            <img src="{{ asset('images/avatar/' . $avatar . '.png') }}" width="80" style=" border-radius:50%;">
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+
+            <button class="btn btn-primary" type="submit">
+                Save
+            </button>
         </form>
     </div>
 @endsection

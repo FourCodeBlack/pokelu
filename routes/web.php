@@ -36,10 +36,9 @@ Route::get('/chat/users',      [ChatController::class, 'getUsers'])->name('chat.
 Route::post('/chat/sync-user', [ChatController::class, 'syncUser'])->name('chat.sync-user');
 
 // ── PROFILE ──
-Route::get('/profile/{uid?}', [ProfileController::class, 'show'])->name('profile');
-
 Route::get('/profile/edit',    [ProfileController::class, 'edit'])->name('profile.edit');
 Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
+Route::get('/profile/{uid?}', [ProfileController::class, 'show'])->name('profile');
 
 // ── LOGIN ──
 Route::get('/login', function () {

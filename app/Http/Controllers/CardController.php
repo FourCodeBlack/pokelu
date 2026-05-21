@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Kreait\Laravel\Firebase\Facades\Firebase;
 
 class CardController extends Controller
 {
@@ -111,7 +112,16 @@ class CardController extends Controller
             return ($b['createdAt'] ?? 0) <=> ($a['createdAt'] ?? 0);
         });
 
-        return view('card-detail', compact('card', 'isAdmin', 'offers', 'comments'));
+        $firebaseToken = null;
+        if ($currentUid) {
+            try {
+                $firebaseToken = Firebase::auth()->createCustomToken($currentUid)->toString();
+            } catch (\Exception $e) {
+                // Ignore
+            }
+        }
+
+        return view('card-detail', compact('card', 'isAdmin', 'offers', 'comments', 'firebaseToken'));
     }
 
     // Fallback ke TCGdex (untuk kartu dari halaman explore)

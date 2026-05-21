@@ -125,3 +125,55 @@
   .pb-ball svg { width: 22px; height: 22px; }
   .pb-ball.spinning svg { animation: spin 0.4s linear infinite; }
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  /* ── SELLER REPUTATION CARD (POKELU THEME) ── */
+  .seller-reputation-card {
+      border: 1px solid rgba(168, 85, 247, 0.28);
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(38, 18, 64, 0.94), rgba(20, 9, 38, 0.98));
+      color: #ffffff;
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 24px;
+  }
+
+  .seller-reputation-card h3 {
+      margin: 4px 0 0;
+      font-size: 22px;
+      font-weight: 900;
+      color: #ffffff;
+  }
+
+  .seller-reputation-label {
+      color: #a78bfa;
+      font-size: 13px;
+      font-weight: 700;
+  }
+
+  .seller-rating-box {
+      text-align: center;
+  }
+
+  .seller-rating-box strong {
+      color: #facc15;
+      font-size: 24px;
+      font-weight: 900;
+      text-shadow: 0 0 12px rgba(250, 204, 21, 0.3);
+  }
+
+  .seller-rating-box span,
+  .seller-transaction-count {
+      color: #c4b5fd;
+      font-size: 14px;
+      font-weight: 700;
+  }
+
+  .seller-transaction-count strong {
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: 900;
+  }

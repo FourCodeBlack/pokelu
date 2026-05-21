@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\FirebaseHelper;
+use Illuminate\Support\Facades\Http;
 
 class ProfileController extends Controller
 {
@@ -49,8 +50,6 @@ class ProfileController extends Controller
                 $activeOffers[] = [
                     'cardId' => $cardId,
                     'offerId' => $offerId,
-                    'cardName' => $card['name'] ?? 'Nama kartu',
-                    'cardImage' => $card['image'] ?? $card['imageUrl'] ?? null,
                     'price' => $offer['price'] ?? null,
                     'condition' => $offer['condition'] ?? null,
                     'contact' => $offer['contact'] ?? null,
@@ -61,6 +60,32 @@ class ProfileController extends Controller
             }
         }
 
+        // Ambil data kartu dari Pokemon TCG API
+        $uniqueCardIds = array_unique(array_column($activeOffers, 'cardId'));
+        $cardDataMap   = [];
+        foreach ($uniqueCardIds as $cid) {
+            try {
+                $resp = Http::timeout(5)->get("https://api.pokemontcg.io/v2/cards/{$cid}");
+                if ($resp->successful()) {
+                    $raw = $resp->json()['data'] ?? [];
+                    $cardDataMap[$cid] = [
+                        'name'  => $raw['name']                            ?? $cid,
+                        'image' => $raw['images']['small']                 ?? null,
+                    ];
+                }
+            } catch (\Exception $e) {
+                // Biarkan fallback yang menangani
+            }
+        }
+
+        // Enrich activeOffers dengan nama dan gambar kartu
+        foreach ($activeOffers as &$item) {
+            $cdata = $cardDataMap[$item['cardId']] ?? [];
+            $item['cardName']  = $cdata['name']  ?? $this->cardNameFromId($item['cardId']);
+            $item['cardImage'] = $cdata['image'] ?? $this->cardImageFromId($item['cardId']);
+        }
+        unset($item);
+
         usort($activeOffers, function ($a, $b) {
             return ($b['createdAt'] ?? 0) <=> ($a['createdAt'] ?? 0);
         });
@@ -70,6 +95,21 @@ class ProfileController extends Controller
             'activeOffers' => $activeOffers,
             'currentUser' => $currentUser,
         ]);
+    }
+
+    private function cardNameFromId(string $cardId): string
+    {
+        return strtoupper(str_replace('-', ' #', $cardId));
+    }
+
+    private function cardImageFromId(string $cardId): ?string
+    {
+        $parts = explode('-', $cardId, 2);
+        if (count($parts) === 2) {
+            [$setId, $number] = $parts;
+            return "https://images.pokemontcg.io/{$setId}/{$number}.png";
+        }
+        return null;
     }
 
     public function edit()

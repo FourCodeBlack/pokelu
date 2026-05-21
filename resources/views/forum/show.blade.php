@@ -73,6 +73,154 @@ body.selection-mode .forum-message {
 .selection-toolbar.hidden {
     display: none !important;
 }
+
+/* ── Forum Image Upload Styles ── */
+.forum-image-preview {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    background: rgba(255, 255, 255, 0.04);
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.forum-image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+#removeForumImageBtn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    border: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+.forum-image-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--dc-border);
+    border-radius: 10px;
+    color: var(--dc-muted);
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, transform 0.15s;
+}
+.forum-image-btn:hover {
+    background: rgba(124, 77, 255, 0.2);
+    color: #fff;
+    transform: scale(1.05);
+}
+.forum-message-image-btn {
+    margin-top: 8px;
+    border: none;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+    display: block;
+    max-width: 340px;
+    text-align: left;
+}
+.forum-message-image {
+    display: block;
+    max-width: 340px;
+    max-height: 280px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 1px solid rgba(124, 77, 255, 0.25);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s;
+}
+.forum-message-image:hover {
+    transform: scale(1.01);
+}
+.forum-image-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(8, 4, 18, 0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    backdrop-filter: blur(4px);
+}
+.forum-image-modal img {
+    max-width: min(92vw, 900px);
+    max-height: 86vh;
+    border-radius: 14px;
+    object-fit: contain;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+}
+.forum-image-modal-close {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    background: var(--dc-pink);
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.forum-upload-progress {
+    display: none;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    position: relative;
+    width: 100%;
+}
+.forum-upload-progress.active {
+    display: block;
+}
+.forum-upload-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--dc-pink), var(--dc-purple));
+    transition: width 0.1s ease;
+}
+.forum-upload-progress-text {
+    position: absolute;
+    right: 16px;
+    top: -20px;
+    font-size: 0.72rem;
+    color: var(--dc-muted);
+}
+.forum-image-modal.hidden,
+.hidden {
+    display: none !important;
+}
+@media (max-width: 768px) {
+    .forum-message-image,
+    .forum-message-image-btn {
+        max-width: 240px;
+    }
+}
 </style>
 @endpush
 
@@ -288,7 +436,16 @@ body.selection-mode .forum-message {
                                     {{ $message['replyTo'] }}
                                 </div>
                             @endif
-                            <p class="message-text" id="text-{{ $message['id'] }}">{{ $message['text'] }}</p>
+                            @if(!empty($message['text']))
+                                <p class="message-text" id="text-{{ $message['id'] }}">{{ $message['text'] }}</p>
+                            @endif
+                            @if(!empty($message['imageUrl']))
+                                <button type="button" class="forum-message-image-btn">
+                                    <img src="{{ $message['imageUrl'] }}"
+                                         class="forum-message-image"
+                                         alt="Forum image">
+                                </button>
+                            @endif
 
                             {{-- Reaction bar --}}
                             <div class="reaction-bar" id="reactions-{{ $message['id'] }}">
@@ -344,20 +501,42 @@ body.selection-mode .forum-message {
 
         {{-- ── INPUT BAR ── --}}
         @if(session()->has('user'))
+            <!-- Progress Bar Upload -->
+            <div class="forum-upload-progress" id="forumUploadProgress">
+                <div class="forum-upload-progress-fill" id="forumUploadProgressFill"></div>
+                <div class="forum-upload-progress-text" id="forumUploadProgressText">0%</div>
+            </div>
+
             <form class="chat-input-bar"
-                  id="commentForm">
+                  id="commentForm"
+                  style="flex-wrap: wrap;">
                 @csrf
                 <input type="hidden" name="replyTo" id="replyToInput" value="">
-                <textarea name="text"
-                          class="chat-textarea"
-                          id="chatTextarea"
-                          placeholder="Kirim pesan ke #{{ Str::slug($thread['title']) }}"
-                          rows="1"
-                          maxlength="1000"
-                          required></textarea>
-                <button type="submit" class="chat-send-btn" id="sendBtn" title="Kirim">
-                    <i class="fa-solid fa-paper-plane"></i>
-                </button>
+                
+                <div id="forumImagePreview" class="forum-image-preview hidden">
+                    <img id="forumPreviewImg" src="" alt="Preview">
+                    <button type="button" id="removeForumImageBtn">×</button>
+                </div>
+
+                <div style="display: flex; width: 100%; align-items: flex-end; gap: 10px;">
+                    <button type="button" id="forumImageBtn" class="forum-image-btn" title="Upload Gambar">
+                        <i class="fa-solid fa-paperclip"></i>
+                    </button>
+                    <input type="file"
+                           id="forumImageInput"
+                           accept="image/png,image/jpeg,image/jpg,image/webp"
+                           hidden>
+
+                    <textarea name="text"
+                              class="chat-textarea"
+                              id="chatTextarea"
+                              placeholder="Kirim pesan ke #{{ Str::slug($thread['title']) }}"
+                              rows="1"
+                              maxlength="1000"></textarea>
+                    <button type="submit" class="chat-send-btn" id="sendBtn" title="Kirim">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
             </form>
         @else
             <div class="chat-login-prompt">
@@ -418,6 +597,12 @@ body.selection-mode .forum-message {
     </div>
 </div>
 
+{{-- ── IMAGE PREVIEW MODAL ── --}}
+<div id="forumImageModal" class="forum-image-modal hidden" onclick="if(event.target===this) { this.classList.add('hidden'); document.getElementById('forumImageModalImg').src = ''; }">
+    <button type="button" id="closeForumImageModal" class="forum-image-modal-close">×</button>
+    <img id="forumImageModalImg" src="" alt="Preview">
+</div>
+
 @push('scripts')
 <script>
 const CSRF   = document.querySelector('meta[name="csrf-token"]').content;
@@ -426,6 +611,21 @@ const CURRENT_UID      = '{{ $currentUid ?? '' }}';
 const CURRENT_USERNAME = '{{ $currentUsername ?? '' }}';
 const CURRENT_PFP      = '{{ $currentPfp ?? 'default' }}';
 const IS_ADMIN = {{ ($isAdmin ?? false) ? 'true' : 'false' }};
+const FIREBASE_TOKEN = '{{ $firebaseToken ?? '' }}';
+
+// ── Firebase Client-Side Authentication via Custom Token ──
+if (FIREBASE_TOKEN) {
+    firebase.auth().onAuthStateChanged(async (user) => {
+        if (!user || user.uid !== CURRENT_UID) {
+            try {
+                await firebase.auth().signInWithCustomToken(FIREBASE_TOKEN);
+                console.log('Firebase authenticated successfully via custom token');
+            } catch (err) {
+                console.error('Firebase custom token authentication failed:', err);
+            }
+        }
+    });
+}
 
 let activeMsg   = null; // { id, isOwn, isAdmin, el }
 let ctxMenu     = document.getElementById('ctxMenu');
@@ -594,6 +794,79 @@ async function doAdminDelete() {
     } catch(err) { console.error(err); }
 }
 
+let selectedForumImage = null;
+
+function removeUndefined(value) {
+    if (Array.isArray(value)) {
+        return value.map(removeUndefined);
+    }
+    if (value && typeof value === 'object') {
+        return Object.fromEntries(
+            Object.entries(value)
+                .filter(([_, v]) => v !== undefined)
+                .map(([k, v]) => [k, removeUndefined(v)])
+        );
+    }
+    return value;
+}
+
+function showForumUploadProgress(show) {
+    const progress = document.getElementById('forumUploadProgress');
+    if (!progress) return;
+    if (show) {
+        progress.classList.add('active');
+        document.getElementById('forumUploadProgressFill').style.width = '0%';
+        document.getElementById('forumUploadProgressText').textContent  = '0%';
+    } else {
+        progress.classList.remove('active');
+    }
+}
+
+async function uploadForumImage(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'pokelu_storage');
+
+    const endpoint = 'https://api.cloudinary.com/v1_1/dsz8bojjy/image/upload';
+
+    showForumUploadProgress(true);
+
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.addEventListener('progress', e => {
+            if (e.lengthComputable) {
+                const pct = (e.loaded / e.total) * 100;
+                const fill = document.getElementById('forumUploadProgressFill');
+                const text = document.getElementById('forumUploadProgressText');
+                if (fill) fill.style.width = pct + '%';
+                if (text) text.textContent = Math.round(pct) + '%';
+            }
+        });
+        xhr.addEventListener('load', () => {
+            showForumUploadProgress(false);
+            if (xhr.status === 200) {
+                const res = JSON.parse(xhr.responseText);
+                if (res?.secure_url) {
+                    resolve({
+                        imageUrl: res.secure_url,
+                        publicId: res.public_id
+                    });
+                } else {
+                    reject(new Error('Upload tidak menghasilkan URL'));
+                }
+            } else {
+                reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+            }
+        });
+        xhr.addEventListener('error', () => {
+            showForumUploadProgress(false);
+            reject(new Error('Network error'));
+        });
+        xhr.open('POST', endpoint);
+        xhr.send(formData);
+    });
+}
+
 // ── Realtime Submit Comment directly to Firebase ──
 async function submitComment(e) {
     if (e) e.preventDefault();
@@ -602,7 +875,7 @@ async function submitComment(e) {
     const btn = document.getElementById('sendBtn');
     
     const text = textInput.value.trim();
-    if (!text) return;
+    if (!text && !selectedForumImage) return;
 
     if (!CURRENT_UID) {
         alert('Harap login terlebih dahulu.');
@@ -613,19 +886,46 @@ async function submitComment(e) {
     btn.style.opacity = '0.5';
 
     try {
+        let imageData = null;
+        if (selectedForumImage) {
+            imageData = await uploadForumImage(selectedForumImage);
+        }
+
+        let type = 'text';
+        if (text && imageData?.imageUrl) {
+            type = 'mixed';
+        } else if (imageData?.imageUrl) {
+            type = 'image';
+        }
+
         const db = firebase.database();
         const messagesRef = db.ref(`forums/${THREAD}/messages`);
         const newMsgRef = messagesRef.push();
         
-        await newMsgRef.set({
+        const payload = removeUndefined({
             uid: CURRENT_UID,
-            text: text,
-            replyTo: replyInput.value || '',
+            type: type,
+            text: text || '',
+            imageUrl: imageData?.imageUrl || null,
+            imagePublicId: imageData?.publicId || null,
+            replyTo: replyInput.value || null,
             createdAt: firebase.database.ServerValue.TIMESTAMP
         });
 
+        await newMsgRef.set(payload);
+
         textInput.value = '';
         textInput.style.height = '42px'; // Reset height
+        
+        // Reset image selection
+        selectedForumImage = null;
+        const fileInput = document.getElementById('forumImageInput');
+        if (fileInput) fileInput.value = '';
+        const previewWrap = document.getElementById('forumImagePreview');
+        if (previewWrap) previewWrap.classList.add('hidden');
+        const previewImg = document.getElementById('forumPreviewImg');
+        if (previewImg) previewImg.src = '';
+
         cancelReply();
         clearTyping();
     } catch(err) {
@@ -665,9 +965,15 @@ async function getUserProfile(uid) {
 
     console.log('Lookup user:', uid, user);
 
+    let handle = user?.handle || '';
+    if (!handle) {
+        const name = user?.name || user?.username || 'User';
+        handle = name.toLowerCase().replace(/\s+/g, '');
+    }
+
     const profile = {
-        username: user?.username || user?.name || 'User',
-        handle: user?.handle || 'user',
+        username: user?.name || user?.username || 'User',
+        handle: handle,
         pfp: user?.pfp || 'default'
     };
 
@@ -691,9 +997,15 @@ function watchUserProfile(uid) {
             return;
         }
         
+        let handle = user.handle || '';
+        if (!handle) {
+            const name = user.name || user.username || 'User';
+            handle = name.toLowerCase().replace(/\s+/g, '');
+        }
+
         const profile = {
-            username: user.username || user.name || 'User',
-            handle: user.handle || '@user',
+            username: user.name || user.username || 'User',
+            handle: handle,
             pfp: user.pfp || 'default'
         };
         
@@ -757,15 +1069,17 @@ async function appendMessage(msg) {
     }
 
     const timeFormatted = msg.createdAtFormatted || formatTime(msg.createdAt);
+    const hasText = !!msg.text;
+    const hasImage = !!msg.imageUrl;
 
     const html = `
     <div class="forum-message" id="msg-${msg.id}"
-         data-msg-id="${msg.id}"
-         data-msg-uid="${msg.uid}"
-         data-user-uid="${msg.uid}"
-         data-msg-text="${escapeHtml(msg.text)}"
-         data-is-own="${isOwn ? '1' : '0'}"
-         oncontextmenu="showCtxMenu(event, '${msg.id}', ${isOwn ? 'true' : 'false'}, IS_ADMIN)">
+          data-msg-id="${msg.id}"
+          data-msg-uid="${msg.uid}"
+          data-user-uid="${msg.uid}"
+          data-msg-text="${escapeHtml(msg.text)}"
+          data-is-own="${isOwn ? '1' : '0'}"
+          oncontextmenu="showCtxMenu(event, '${msg.id}', ${isOwn ? 'true' : 'false'}, IS_ADMIN)">
 
         <div class="selection-check">✓</div>
 
@@ -781,7 +1095,14 @@ async function appendMessage(msg) {
                 <time class="message-time">${timeFormatted}</time>
             </div>
             ${replyHtml}
-            <p class="message-text" id="text-${msg.id}">${escapeHtml(msg.text)}</p>
+            ${hasText ? `<p class="message-text" id="text-${msg.id}">${escapeHtml(msg.text)}</p>` : ''}
+            ${hasImage ? `
+                <button type="button" class="forum-message-image-btn">
+                    <img src="${escapeHtml(msg.imageUrl)}"
+                         class="forum-message-image"
+                         alt="Forum image">
+                </button>
+            ` : ''}
 
             <div class="reaction-bar" id="reactions-${msg.id}">
                 ${reactionsHtml}
@@ -838,6 +1159,8 @@ messagesRef.limitToLast(50).on('child_added', async snapshot => {
         id: msgId,
         uid: msg.uid,
         text: msg.text,
+        imageUrl: msg.imageUrl,
+        imagePublicId: msg.imagePublicId,
         replyTo: msg.replyTo,
         createdAt: msg.createdAt,
         reactions: msg.reactions,
@@ -1120,6 +1443,80 @@ document.addEventListener('DOMContentLoaded', () => {
             attachMessageSelectionEvents(el, messageId, uid);
         }
     });
+
+    // ── Bind Image Upload and Preview events ──
+    const forumImageBtn = document.getElementById('forumImageBtn');
+    const forumImageInput = document.getElementById('forumImageInput');
+    const forumImagePreview = document.getElementById('forumImagePreview');
+    const forumPreviewImg = document.getElementById('forumPreviewImg');
+    const removeForumImageBtn = document.getElementById('removeForumImageBtn');
+
+    if (forumImageBtn && forumImageInput) {
+        forumImageBtn.addEventListener('click', function () {
+            forumImageInput.click();
+        });
+    }
+
+    if (forumImageInput) {
+        forumImageInput.addEventListener('change', function () {
+            const file = this.files[0];
+            if (!file) return;
+
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+            const maxSize = 3 * 1024 * 1024; // Let's enforce 3 MB or 5 MB. 3 MB as default for speed
+
+            if (!allowedTypes.includes(file.type)) {
+                alert('Format gambar tidak didukung. Harap pilih JPG, JPEG, PNG, atau WEBP.');
+                this.value = '';
+                return;
+            }
+
+            if (file.size > maxSize) {
+                alert('Ukuran gambar maksimal 3 MB.');
+                this.value = '';
+                return;
+            }
+
+            selectedForumImage = file;
+
+            const previewUrl = URL.createObjectURL(file);
+            if (forumPreviewImg) forumPreviewImg.src = previewUrl;
+            if (forumImagePreview) forumImagePreview.classList.remove('hidden');
+        });
+    }
+
+    if (removeForumImageBtn) {
+        removeForumImageBtn.addEventListener('click', function () {
+            selectedForumImage = null;
+            if (forumImageInput) forumImageInput.value = '';
+            if (forumPreviewImg) forumPreviewImg.src = '';
+            if (forumImagePreview) forumImagePreview.classList.add('hidden');
+        });
+    }
+
+    // Modal click handler for message images
+    document.addEventListener('click', function (e) {
+        const imageBtn = e.target.closest('.forum-message-image-btn');
+        if (imageBtn) {
+            const img = imageBtn.querySelector('img');
+            if (!img) return;
+
+            const modalImg = document.getElementById('forumImageModalImg');
+            const modal = document.getElementById('forumImageModal');
+            if (modalImg) modalImg.src = img.src;
+            if (modal) modal.classList.remove('hidden');
+        }
+    });
+
+    const closeBtn = document.getElementById('closeForumImageModal');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function () {
+            const modal = document.getElementById('forumImageModal');
+            const modalImg = document.getElementById('forumImageModalImg');
+            if (modal) modal.classList.add('hidden');
+            if (modalImg) modalImg.src = '';
+        });
+    }
 });
 </script>
 @endpush

@@ -456,6 +456,21 @@
     const auth = firebase.auth();
     const db = firebase.database();
     const FB_TIMESTAMP = firebase.database.ServerValue.TIMESTAMP;
+    const FIREBASE_TOKEN = '{{ $firebaseToken ?? '' }}';
+
+    if (FIREBASE_TOKEN) {
+      auth.onAuthStateChanged(async (user) => {
+        const currentUid = '{{ session("user.uid") }}';
+        if (!user || user.uid !== currentUid) {
+          try {
+            await auth.signInWithCustomToken(FIREBASE_TOKEN);
+            console.log('Firebase authenticated successfully via custom token');
+          } catch (err) {
+            console.error('Firebase custom token authentication failed:', err);
+          }
+        }
+      });
+    }
 
     function snapshotToArray(snapshot) {
       const result = [];
@@ -750,7 +765,7 @@
               });
               // Do NOT write partner's user_rooms from client; partner should create/update their own entry.
             }
-            window.location.href = `/chat?room=${roomId}&sellerId=${offer.uid}&sellerName=${encodeURIComponent(offer.resolvedName || 'Penjual')}&cardId=${this.cardId}`;
+            window.location.href = `/chat?room=${roomId}&sellerId=${offer.uid}&cardId=${this.cardId}&offerId=${offer.id}`;
           });
         },
 

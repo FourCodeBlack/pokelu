@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\FirebaseHelper;
 use App\Services\CloudinaryService;
 use Illuminate\Support\Str;
+use Kreait\Laravel\Firebase\Facades\Firebase;
 
 class ForumController extends Controller
 {
@@ -32,7 +33,13 @@ class ForumController extends Controller
             $user = $uid ? ($userCache[$uid] ?? []) : [];
             
             $data['resolvedPfp'] = $user['pfp'] ?? $data['photoURL'] ?? 'default';
-            $data['resolvedUsername'] = $user['handle'] ?? $data['username'] ?? 'user';
+            $displayName = $user['name'] ?? $user['username'] ?? $data['displayName'] ?? 'User';
+            $fallbackUsername = strtolower(str_replace(' ', '', $displayName));
+            $resolvedUsername = $user['handle'] ?? $data['username'] ?? $fallbackUsername;
+            if ($resolvedUsername === 'user' && $displayName !== 'User') {
+                $resolvedUsername = $fallbackUsername;
+            }
+            $data['resolvedUsername'] = $resolvedUsername;
 
             $threads[] = $data;
         }
@@ -100,8 +107,12 @@ class ForumController extends Controller
 
             // Resolve fields: Priority live profile -> fallback to old cdata -> default
             $pfpCode = $msgUser['pfp'] ?? $cdata['pfp'] ?? 'default';
-            $displayName = $msgUser['username'] ?? $cdata['displayName'] ?? $cdata['username'] ?? 'User';
-            $username = $msgUser['handle'] ?? $cdata['username'] ?? 'user';
+            $displayName = $msgUser['name'] ?? $msgUser['username'] ?? $cdata['displayName'] ?? $cdata['username'] ?? 'User';
+            $fallbackUsername = strtolower(str_replace(' ', '', $displayName));
+            $username = $msgUser['handle'] ?? $cdata['username'] ?? $fallbackUsername;
+            if ($username === 'user' && $displayName !== 'User') {
+                $username = $fallbackUsername;
+            }
 
             $avatar = '/images/avatar/' . $pfpCode . '.png';
             $messages[] = [
@@ -112,6 +123,9 @@ class ForumController extends Controller
                 'pfp'              => $pfpCode,
                 'avatar'           => $avatar,
                 'text'             => $cdata['text'] ?? '',
+                'imageUrl'         => $cdata['imageUrl'] ?? null,
+                'imagePublicId'    => $cdata['imagePublicId'] ?? null,
+                'type'             => $cdata['type'] ?? 'text',
                 'createdAt'        => $cdata['createdAt'] ?? 0,
                 'createdAtFormatted' => isset($cdata['createdAt'])
                     ? date('d M Y, H:i', $cdata['createdAt'] / 1000) : '',
@@ -121,8 +135,22 @@ class ForumController extends Controller
         }
         usort($messages, fn($a, $b) => $a['createdAt'] <=> $b['createdAt']);
 
-        // Resolve thread author avatar
-        $pfp = $thread['photoURL'] ?? 'pfp6';
+        // Resolve thread author profile
+        $authorUid = $thread['uid'] ?? null;
+        $authorUser = [];
+        if ($authorUid) {
+            $authorUser = FirebaseHelper::baca("users/{$authorUid}") ?? [];
+        }
+
+        $displayName = $authorUser['name'] ?? $authorUser['username'] ?? $thread['displayName'] ?? 'User';
+        $thread['displayName'] = $displayName;
+        $fallbackUsername = strtolower(str_replace(' ', '', $displayName));
+        $thread['username'] = $authorUser['handle'] ?? $thread['username'] ?? $fallbackUsername;
+        if ($thread['username'] === 'user' && $displayName !== 'User') {
+            $thread['username'] = $fallbackUsername;
+        }
+
+        $pfp = $authorUser['pfp'] ?? $thread['photoURL'] ?? 'pfp6';
         $thread['authorAvatar'] = str_starts_with($pfp, 'http') ? $pfp : '/images/avatar/' . $pfp . '.png';
         $thread['thumbnailSrc'] = !empty($thread['thumbnailUrl'])
             ? $thread['thumbnailUrl'] : '/images/pfp.png';
@@ -143,15 +171,21 @@ class ForumController extends Controller
 
         // Fetch current user role
         $currentUser = null;
+        $firebaseToken = null;
         if ($uid) {
             $currentUser = FirebaseHelper::baca("users/{$uid}");
+            try {
+                $firebaseToken = Firebase::auth()->createCustomToken($uid)->toString();
+            } catch (\Exception $e) {
+                // Ignore
+            }
         }
         $isAdmin = ($currentUser['role'] ?? 'user') === 'admin';
 
         return view('forum.show', compact(
             'thread', 'threadId', 'messages',
             'popularThreads', 'likeCount', 'dislikeCount',
-            'commentCount', 'userLiked', 'userDisliked', 'uid', 'isAdmin'
+            'commentCount', 'userLiked', 'userDisliked', 'uid', 'isAdmin', 'firebaseToken'
         ));
     }
 

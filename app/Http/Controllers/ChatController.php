@@ -13,7 +13,16 @@ class ChatController extends Controller
      */
     public function index()
     {
-        return view('chat');
+        $currentUid = session('user.uid');
+        $firebaseToken = null;
+        if ($currentUid) {
+            try {
+                $firebaseToken = \Kreait\Laravel\Firebase\Facades\Firebase::auth()->createCustomToken($currentUid)->toString();
+            } catch (\Exception $e) {
+                // Ignore
+            }
+        }
+        return view('chat', compact('firebaseToken'));
     }
 
     /**
